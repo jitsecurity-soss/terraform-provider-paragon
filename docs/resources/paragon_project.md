@@ -7,7 +7,7 @@ description: |-
 
 # paragon_project (Resource)
 
-Manages a paragon project.
+Manages a paragon [project](https://docs-prod.useparagon.com/deploying-integrations/projects).
 
 ## Example Usage
 

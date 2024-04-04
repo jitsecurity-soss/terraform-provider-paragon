@@ -7,7 +7,7 @@ description: |-
 
 # paragon_sdk_keys (Resource)
 
-Manages SDK keys for a project. The private key that is created should be used to sign JWT tokens described as [paragon user](https://docs.useparagon.com/billing/connected-users). 
+Manages [SDK keys](https://docs-prod.useparagon.com/tutorials/building-a-bamboohr-integration#id-2.-generate-a-paragon-signing-key) for a project. The private key that is created should be used to sign JWT tokens described as [paragon user](https://docs.useparagon.com/billing/connected-users). 
 
 ~> **IMPORTANT:** 
 The private key that is created should be stored securely.

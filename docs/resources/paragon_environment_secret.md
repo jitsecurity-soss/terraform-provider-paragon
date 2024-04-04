@@ -7,7 +7,7 @@ description: |-
 
 # paragon_environment_secret (Resource)
 
-Manages an environment secret. Those values can then be used inside workflows.
+Manages an [environment secret](https://docs-prod.useparagon.com/workflows/environment-secrets). Those values can then be used inside workflows.
 
 -> **NOTE:** `key` argument cannot be updated, it will cause recreation of the resource.
 

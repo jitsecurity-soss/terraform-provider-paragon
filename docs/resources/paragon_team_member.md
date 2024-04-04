@@ -7,7 +7,7 @@ description: |-
 
 # paragon_team_member (Resource)
 
-Manages a team member, This resource handles either if the member already accepted the invitation or not.
+Manages a [team member](https://docs-prod.useparagon.com/managing-account/teams), This resource handles either if the member already accepted the invitation or not.
 
 -> **NOTE:** `key` argument cannot be updated, it will cause recreation of the resource.
 
