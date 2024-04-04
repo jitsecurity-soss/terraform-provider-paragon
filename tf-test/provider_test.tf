@@ -6,14 +6,10 @@ terraform {
   }
 }
 
-# Configure the connection details for the Inventory service
 provider "paragon" {
-  host = "127.0.0.1"
-  port = "8080"
+  username = "XX@xx.xx"
+  password = "XX"
 }
 
-#Create new Inventory item
-resource "paragon_item" "example" {
-  name = "Jones Extreme Sour Cherry Warhead Soda"
-  tag  = "USD:2.99"
-}
+# Get all organizations
+data "paragon_organizations" "orgs" {}
