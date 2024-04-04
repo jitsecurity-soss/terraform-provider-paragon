@@ -140,6 +140,7 @@ func (p *paragonProvider) Configure(ctx context.Context, req provider.ConfigureR
 func (p *paragonProvider) DataSources(_ context.Context) []func() datasource.DataSource {
     return []func() datasource.DataSource{
         NewOrganizationsDataSource,
+        NewOrganizationDataSource,
         NewTeamsDataSource,
         NewTeamDataSource,
     }

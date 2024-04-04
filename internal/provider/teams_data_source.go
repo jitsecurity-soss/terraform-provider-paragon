@@ -38,7 +38,6 @@ type teamModel struct {
     Name           types.String       `tfsdk:"name"`
     Website        types.String       `tfsdk:"website"`
     OrganizationID types.String       `tfsdk:"organization_id"`
-    Organization   *organizationModel `tfsdk:"organization"`
 }
 
 // Configure adds the provider configured client to the data source.
@@ -93,56 +92,6 @@ func (d *teamsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, 
                             Description: "The ID of the organization the team belongs to.",
                             Computed:    true,
                         },
-                        "organization": schema.SingleNestedAttribute{
-                            Description: "The organization the team belongs to.",
-                            Computed:    true,
-                            Attributes: map[string]schema.Attribute{
-                                "id": schema.StringAttribute{
-                                    Description: "Identifier for the organization.",
-                                    Computed:    true,
-                                },
-                                "date_created": schema.StringAttribute{
-                                    Description: "The creation date of the organization.",
-                                    Computed:    true,
-                                },
-                                "date_updated": schema.StringAttribute{
-                                    Description: "The last update date of the organization.",
-                                    Computed:    true,
-                                },
-                                "name": schema.StringAttribute{
-                                    Description: "The name of the organization.",
-                                    Computed:    true,
-                                },
-                                "website": schema.StringAttribute{
-                                    Description: "The website of the organization.",
-                                    Computed:    true,
-                                },
-                                "type": schema.StringAttribute{
-                                    Description: "The type of the organization.",
-                                    Computed:    true,
-                                },
-                                "purpose": schema.StringAttribute{
-                                    Description: "The purpose of the organization.",
-                                    Computed:    true,
-                                },
-                                "referral": schema.StringAttribute{
-                                    Description: "The referral of the organization.",
-                                    Computed:    true,
-                                },
-                                "size": schema.StringAttribute{
-                                    Description: "The size of the organization.",
-                                    Computed:    true,
-                                },
-                                "role": schema.StringAttribute{
-                                    Description: "The role of the organization.",
-                                    Computed:    true,
-                                },
-                                "completed_qualification": schema.BoolAttribute{
-                                    Description: "Indicates if the organization has completed qualification.",
-                                    Computed:    true,
-                                },
-                            },
-                        },
                     },
                 },
             },
@@ -172,19 +121,6 @@ func (d *teamsDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
             Name:           types.StringValue(team.Name),
             Website:        types.StringValue(team.Website),
             OrganizationID: types.StringValue(team.OrganizationID),
-            Organization: &organizationModel{
-                ID:                    types.StringValue(team.Organization.ID),
-                DateCreated:           types.StringValue(team.Organization.DateCreated),
-                DateUpdated:           types.StringValue(team.Organization.DateUpdated),
-                Name:                  types.StringValue(team.Organization.Name),
-                Website:               types.StringValue(team.Organization.Website),
-                Type:                  types.StringValue(team.Organization.Type),
-                Purpose:               types.StringValue(team.Organization.Purpose),
-                Referral:              types.StringValue(team.Organization.Referral),
-                Size:                  types.StringValue(team.Organization.Size),
-                Role:                  types.StringValue(team.Organization.Role),
-                CompletedQualification: types.BoolValue(team.Organization.CompletedQualification),
-            },
         })
     }
 
