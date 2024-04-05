@@ -3,6 +3,7 @@ package provider
 
 import (
     "context"
+    "strings"
     "github.com/hashicorp/terraform-plugin-framework/resource"
     "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -143,6 +144,11 @@ func (r *environmentSecretResource) Read(ctx context.Context, req resource.ReadR
     // Retrieve the environment secrets using the GetEnvironmentSecrets function
     secrets, err := r.client.GetEnvironmentSecrets(ctx, projectID)
     if err != nil {
+
+        if strings.Contains(err.Error(), "status code: 404") {
+            resp.State.RemoveResource(ctx)
+            return
+        }
         resp.Diagnostics.AddError(
             "Error reading environment secrets",
             "Could not read environment secrets, unexpected error: "+err.Error(),
@@ -201,6 +207,13 @@ func (r *environmentSecretResource) Update(ctx context.Context, req resource.Upd
     // Update the environment secret using the UpdateEnvironmentSecret function
     updatedSecret, err := r.client.UpdateEnvironmentSecret(ctx, projectID, secretID, key, value)
     if err != nil {
+        if strings.Contains(err.Error(), "status code: 404") {
+            resp.Diagnostics.AddError(
+                "Environment secret not found during update",
+                "The environment secret was not found while attempting to update it. This is an unexpected error.",
+            )
+            return
+        }
         resp.Diagnostics.AddError(
             "Error updating environment secret",
             "Could not update environment secret, unexpected error: "+err.Error(),
@@ -235,10 +248,12 @@ func (r *environmentSecretResource) Delete(ctx context.Context, req resource.Del
     // Delete the environment secret using the DeleteEnvironmentSecret function
     err := r.client.DeleteEnvironmentSecret(ctx, projectID, secretID)
     if err != nil {
-        resp.Diagnostics.AddError(
-            "Error deleting environment secret",
-            "Could not delete environment secret, unexpected error: "+err.Error(),
-        )
-        return
+        if !strings.Contains(err.Error(), "status code: 404") {
+            resp.Diagnostics.AddError(
+                "Error deleting environment secret",
+                "Could not delete environment secret, unexpected error: "+err.Error(),
+            )
+            return
+        }
     }
 }

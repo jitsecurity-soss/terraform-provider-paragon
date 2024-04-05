@@ -3,6 +3,7 @@ package provider
 import (
     "context"
     "fmt"
+    "strings"
 
     "github.com/hashicorp/terraform-plugin-framework/resource"
     "github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -174,6 +175,10 @@ func (r *projectResource) Read(ctx context.Context, req resource.ReadRequest, re
     // Retrieve the project using the GetProjectByID function
     project, err := r.client.GetProjectByID(ctx, projectID, teamID)
     if err != nil {
+        if strings.Contains(err.Error(), "status code: 404") {
+            resp.State.RemoveResource(ctx)
+            return
+        }
         resp.Diagnostics.AddError(
             "Error reading project",
             "Could not read project, unexpected error: "+err.Error(),
@@ -232,6 +237,13 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
         // Update the project title using the UpdateProjectTitle function
         updatedProject, err := r.client.UpdateProjectTitle(ctx, projectID, teamID, plan.Name.ValueString())
         if err != nil {
+            if strings.Contains(err.Error(), "status code: 404") {
+                resp.Diagnostics.AddError(
+                    "Project not found during update",
+                    "The project was not found while attempting to update it. This is an unexpected error.",
+                )
+                return
+            }
             resp.Diagnostics.AddError(
                 "Error updating project title",
                 "Could not update project title, unexpected error: "+err.Error(),
@@ -273,10 +285,12 @@ func (r *projectResource) Delete(ctx context.Context, req resource.DeleteRequest
     // Delete the project using the DeleteProject function
     err := r.client.DeleteProject(ctx, projectID, teamID)
     if err != nil {
-        resp.Diagnostics.AddError(
-            "Error deleting project",
-            "Could not delete project, unexpected error: "+err.Error(),
-        )
-        return
+        if !strings.Contains(err.Error(), "status code: 404") {
+            resp.Diagnostics.AddError(
+                "Error deleting project",
+                "Could not delete project, unexpected error: "+err.Error(),
+            )
+            return
+        }
     }
 }

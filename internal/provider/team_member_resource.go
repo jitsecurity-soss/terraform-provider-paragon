@@ -4,6 +4,7 @@ import (
     "context"
     "fmt"
     "regexp"
+    "strings"
 
     "github.com/hashicorp/terraform-plugin-framework/resource"
     "github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -196,6 +197,10 @@ func (r *teamMemberResource) Read(ctx context.Context, req resource.ReadRequest,
     tflog.Debug(ctx, "Getting team members...")
     members, err := r.client.GetTeamMembers(ctx, teamID)
     if err != nil {
+        if strings.Contains(err.Error(), "status code: 404") {
+            resp.State.RemoveResource(ctx)
+            return
+        }
         resp.Diagnostics.AddError(
             "Error reading team members",
             "Could not read team members, unexpected error: "+err.Error(),
@@ -225,6 +230,10 @@ func (r *teamMemberResource) Read(ctx context.Context, req resource.ReadRequest,
     tflog.Debug(ctx, "Searching invites...")
     invites, err := r.client.GetTeamInvites(ctx, teamID)
     if err != nil {
+        if strings.Contains(err.Error(), "status code: 404") {
+            resp.State.RemoveResource(ctx)
+            return
+        }
         resp.Diagnostics.AddError(
             "Error reading team invites",
             "Could not read team invites, unexpected error: "+err.Error(),
