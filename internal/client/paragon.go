@@ -742,6 +742,7 @@ func (c *Client) UpdateTeamMemberRole(ctx context.Context, teamID, memberID, rol
 
 func (c *Client) DeleteTeamMember(ctx context.Context, teamID, memberID string) error {
     url := fmt.Sprintf("%s/teams/%s/members/%s", c.baseURL, teamID, memberID)
+    tflog.Debug(ctx, fmt.Sprintf("url to delete: %s", url))
 
     req, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
     if err != nil {
@@ -755,8 +756,31 @@ func (c *Client) DeleteTeamMember(ctx context.Context, teamID, memberID string) 
     }
     defer resp.Body.Close()
 
-    if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
-        return fmt.Errorf("status code: %d", resp.StatusCode)
+    if resp.StatusCode == http.StatusNotFound {
+        return fmt.Errorf("status code: %d", http.StatusNotFound)
+    }
+
+    // Weirdly enough - if team member is not found, the status code is 403 with this body:
+    // {
+    //     "message": "Unable to find team member.",
+    //     "code": "13200",
+    //     "status": 403,
+    //     "meta": {
+    //         "teamMemberId": "<member_id>"
+    //     }
+    // }
+    if resp.StatusCode == http.StatusForbidden {
+        var errResp struct {
+            Message string `json:"message"`
+            Code    string `json:"code"`
+        }
+        if err := json.NewDecoder(resp.Body).Decode(&errResp); err != nil {
+            return fmt.Errorf("failed to decode error response: %v", err)
+        }
+
+        if errResp.Message == "Unable to find team member." || errResp.Code == "13200" {
+            return fmt.Errorf("status code: %d", http.StatusNotFound)
+        }
     }
 
     if resp.StatusCode != http.StatusOK {
@@ -781,8 +805,31 @@ func (c *Client) DeleteTeamInvite(ctx context.Context, teamID, inviteID string) 
     }
     defer resp.Body.Close()
 
-    if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden {
-        return fmt.Errorf("status code: %d", resp.StatusCode)
+    if resp.StatusCode == http.StatusNotFound {
+        return fmt.Errorf("status code: %d", http.StatusNotFound)
+    }
+
+    // Weirdly enough - if invite is not found, the status code is 403 with this body:
+//     {
+//     "message": "Unable to find invite.",
+//     "code": "13101",
+//     "status": 403,
+//     "meta": {
+//         "inviteId": "<invite_id>>"
+//     }
+// }
+    if resp.StatusCode == http.StatusForbidden {
+        var errResp struct {
+            Message string `json:"message"`
+            Code    string `json:"code"`
+        }
+        if err := json.NewDecoder(resp.Body).Decode(&errResp); err != nil {
+            return fmt.Errorf("failed to decode error response: %v", err)
+        }
+
+        if errResp.Message == "Unable to find invite." || errResp.Code == "13101" {
+            return fmt.Errorf("status code: %d", http.StatusNotFound)
+        }
     }
 
     if resp.StatusCode != http.StatusOK {

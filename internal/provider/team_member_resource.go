@@ -361,18 +361,18 @@ func (r *teamMemberResource) Delete(ctx context.Context, req resource.DeleteRequ
     // Delete the team member from the members list
     err := r.client.DeleteTeamMember(ctx, teamID, memberID)
     if err != nil {
-        if err.Error() != "status code: 404" && err.Error() != "status code: 403" {
+        if err.Error() != "status code: 404" {
             resp.Diagnostics.AddError(
-                "Error deleting team member",
-                "Could not delete team member from members list, unexpected error: "+err.Error(),
-            )
+               "Error deleting team member",
+                fmt.Sprintf("Could not delete team member from members list, unexpected error: %s\nTeam ID: %s\nMember ID: %s", err.Error(), teamID, memberID),
+)
             return
         }
 
         // If the member is not found in the members list, try deleting from the invites
         err = r.client.DeleteTeamInvite(ctx, teamID, memberID)
         if err != nil {
-            if err.Error() != "status code: 404" && err.Error() != "status code: 403" {
+            if err.Error() != "status code: 404"  {
                 resp.Diagnostics.AddError(
                     "Error deleting team invite",
                     "Could not delete team invite, unexpected error: "+err.Error(),
