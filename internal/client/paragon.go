@@ -1026,3 +1026,63 @@ func (c *Client) DeleteCLIKey(ctx context.Context, organizationID, keyID string)
 
     return nil
 }
+
+type Integration struct {
+    ID                  string             `json:"id"`
+    DateCreated         string             `json:"dateCreated"`
+    DateUpdated         string             `json:"dateUpdated"`
+    ProjectID           string             `json:"projectId"`
+    CustomIntegrationID string             `json:"customIntegrationId"`
+    Type                string             `json:"type"`
+    IsActive            bool               `json:"isActive"`
+    Configs             []IntegrationConfig `json:"configs"`
+    CustomIntegration   *CustomIntegration `json:"customIntegration"`
+    ConnectedUserCount  int                `json:"connectedUserCount"`
+}
+
+type IntegrationConfig struct {
+    ID           string                 `json:"id"`
+    DateCreated  string                 `json:"dateCreated"`
+    DateUpdated  string                 `json:"dateUpdated"`
+    IntegrationID string                `json:"integrationId"`
+    Values       map[string]interface{} `json:"values"`
+}
+
+type CustomIntegration struct {
+    ID                 string      `json:"id"`
+    DateCreated        string      `json:"dateCreated"`
+    DateUpdated        string      `json:"dateUpdated"`
+    ProjectID          string      `json:"projectId"`
+    Name               string      `json:"name"`
+    AuthenticationType string      `json:"authenticationType"`
+    InputFields        []string    `json:"inputFields"`
+    Slug               string      `json:"slug"`
+}
+
+func (c *Client) GetIntegrations(ctx context.Context, projectID string) ([]Integration, error) {
+    url := fmt.Sprintf("%s/projects/%s/integrations", c.baseURL, projectID)
+
+    req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+    if err != nil {
+        return nil, err
+    }
+    req.Header.Set("Authorization", "Bearer "+c.accessToken)
+
+    resp, err := c.httpClient.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        return nil, fmt.Errorf("failed to get integrations with status code: %d", resp.StatusCode)
+    }
+
+    var integrations []Integration
+    err = json.NewDecoder(resp.Body).Decode(&integrations)
+    if err != nil {
+        return nil, err
+    }
+
+    return integrations, nil
+}
