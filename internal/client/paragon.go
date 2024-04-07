@@ -1232,3 +1232,72 @@ func (c *Client) GetDecryptedCredential(ctx context.Context, projectID, credID s
     return &credential, nil
 }
 
+func (c *Client) UpdateIntegrationStatus(ctx context.Context, projectID, integrationID string, active bool) (*Integration, error) {
+    url := fmt.Sprintf("%s/projects/%s/integrations/%s", c.baseURL, projectID, integrationID)
+
+    reqBody := map[string]bool{
+        "isActive": active,
+    }
+    jsonBody, _ := json.Marshal(reqBody)
+
+    req, err := http.NewRequestWithContext(ctx, "PATCH", url, bytes.NewBuffer(jsonBody))
+    if err != nil {
+        return nil, err
+    }
+    req.Header.Set("Content-Type", "application/json")
+    req.Header.Set("Authorization", "Bearer "+c.accessToken)
+
+    resp, err := c.httpClient.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode == http.StatusNotFound {
+        return nil, fmt.Errorf("status code: 404")
+    }
+
+    if resp.StatusCode != http.StatusOK {
+        return nil, fmt.Errorf("failed to update integration status with status code: %d", resp.StatusCode)
+    }
+
+    var integration Integration
+    err = json.NewDecoder(resp.Body).Decode(&integration)
+    if err != nil {
+        return nil, err
+    }
+
+    return &integration, nil
+}
+
+func (c *Client) GetIntegration(ctx context.Context, projectID, integrationID string) (*Integration, error) {
+    url := fmt.Sprintf("%s/projects/%s/integrations/%s", c.baseURL, projectID, integrationID)
+
+    req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+    if err != nil {
+        return nil, err
+    }
+    req.Header.Set("Authorization", "Bearer "+c.accessToken)
+
+    resp, err := c.httpClient.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode == http.StatusNotFound {
+        return nil, fmt.Errorf("status code: 404")
+    }
+
+    if resp.StatusCode != http.StatusOK {
+        return nil, fmt.Errorf("failed to get integration with status code: %d", resp.StatusCode)
+    }
+
+    var integration Integration
+    err = json.NewDecoder(resp.Body).Decode(&integration)
+    if err != nil {
+        return nil, err
+    }
+
+    return &integration, nil
+}
