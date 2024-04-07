@@ -27,8 +27,8 @@ type integrationsDataSource struct {
 
 // integrationsDataSourceModel maps the data source schema data.
 type integrationsDataSourceModel struct {
-    ProjectID    types.String       `tfsdk:"project_id"`
-    Integrations []integrationModel `tfsdk:"integrations"`
+    ProjectID    types.String                     `tfsdk:"project_id"`
+    Integrations map[string]integrationModel      `tfsdk:"integrations"`
 }
 
 type integrationModel struct {
@@ -67,8 +67,8 @@ func (d *integrationsDataSource) Schema(_ context.Context, _ datasource.SchemaRe
                 Description: "The ID of the project.",
                 Required:    true,
             },
-            "integrations": schema.ListNestedAttribute{
-                Description: "The list of integrations.",
+            "integrations": schema.MapNestedAttribute{
+                Description: "The map of integrations keyed by their type.",
                 Computed:    true,
                 NestedObject: schema.NestedAttributeObject{
                     Attributes: map[string]schema.Attribute{
@@ -127,7 +127,7 @@ func (d *integrationsDataSource) Read(ctx context.Context, req datasource.ReadRe
     }
 
     // Map the integrations to the state.
-    var integrationModels []integrationModel
+    integrationModels := make(map[string]integrationModel)
     for _, integration := range integrations {
         integrationType := integration.Type
         authenticationType := ""
@@ -135,14 +135,14 @@ func (d *integrationsDataSource) Read(ctx context.Context, req datasource.ReadRe
             integrationType = integration.CustomIntegration.Slug
             authenticationType = integration.CustomIntegration.AuthenticationType
         }
-        integrationModels = append(integrationModels, integrationModel{
+        integrationModels[integrationType] = integrationModel{
             ID:                  types.StringValue(integration.ID),
             CustomIntegrationID: types.StringValue(integration.CustomIntegrationID),
             Type:                types.StringValue(integrationType),
             IsActive:            types.BoolValue(integration.IsActive),
             AuthenticationType: types.StringValue(authenticationType),
             ConnectedUserCount:  types.Int64Value(int64(integration.ConnectedUserCount)),
-        })
+        }
     }
 
     state.Integrations = integrationModels
