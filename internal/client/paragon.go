@@ -251,6 +251,34 @@ func (c *Client) CreateProject(ctx context.Context, organizationID, projectName 
     return connectProject, nil
 }
 
+func (c *Client) GetProjects(ctx context.Context, teamID string) ([]Project, error) {
+    url := fmt.Sprintf("%s/projects?teamId=%s", c.baseURL, teamID)
+
+    req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+    if err != nil {
+        return nil, err
+    }
+    req.Header.Set("Authorization", "Bearer "+c.accessToken)
+
+    resp, err := c.httpClient.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        return nil, fmt.Errorf("failed to get projects for team_id %s with status code: %d", teamID, resp.StatusCode)
+    }
+
+    var projects []Project
+    err = json.NewDecoder(resp.Body).Decode(&projects)
+    if err != nil {
+        return nil, err
+    }
+
+    return projects, nil
+}
+
 func (c *Client) GetProjectByID(ctx context.Context, projectID, teamID string) (*Project, error) {
     url := fmt.Sprintf("%s/projects/%s?teamId=%s", c.baseURL, projectID, teamID)
 

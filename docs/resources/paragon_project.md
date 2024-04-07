@@ -9,6 +9,7 @@ description: |-
 
 Manages a paragon [project](https://docs-prod.useparagon.com/deploying-integrations/projects).
 
+
 ## Example Usage
 
 ```terraform
@@ -25,6 +26,7 @@ resource "paragon_project" "example" {
 
 - `organization_id` (String, Required) Identifier of the organization.
 - `name` (String, Required) Name of the project.
+- `duplicate_name_allowed` (String, Optional) Indicates whether creating another project with the same name is allowed. (Default = False)
 
 ### Attributes Reference
 

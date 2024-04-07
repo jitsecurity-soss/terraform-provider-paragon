@@ -12,6 +12,8 @@ import (
     "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
     "github.com/hashicorp/terraform-plugin-framework/schema/validator"
     "github.com/hashicorp/terraform-plugin-framework/path"
+    "github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 
 )
 
@@ -41,6 +43,7 @@ type projectResourceModel struct {
     TeamID            types.String `tfsdk:"team_id"`
     IsConnectProject  types.Bool   `tfsdk:"is_connect_project"`
     IsHidden          types.Bool   `tfsdk:"is_hidden"`
+    DuplicateNameAllowed types.Bool `tfsdk:"duplicate_name_allowed"`
 }
 
 // Configure adds the provider configured client to the resource.
@@ -66,9 +69,16 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
                 Description: "Identifier of the project.",
                 Computed:    true,
             },
+            "duplicate_name_allowed": schema.BoolAttribute{
+                Description: "Indicates whether creating another project with the same name is allowed. Default=false.",
+                Optional:    true,
+            },
             "organization_id": schema.StringAttribute{
                 Description: "Identifier of the organization.",
                 Required:    true,
+                PlanModifiers: []planmodifier.String{
+                    stringplanmodifier.RequiresReplace(),
+                },
             },
             "name": schema.StringAttribute{
                 Description: "Name of the project.",
@@ -97,6 +107,7 @@ func (r *projectResource) Schema(_ context.Context, _ resource.SchemaRequest, re
                 Description: "Indicates if the project is hidden.",
                 Computed:    true,
             },
+
         },
     }
 }
@@ -111,24 +122,48 @@ func (r *projectResource) Create(ctx context.Context, req resource.CreateRequest
         return
     }
 
-     // Get the list of teams
-    teams, err := r.client.GetTeams(ctx)
-    if err != nil {
-        resp.Diagnostics.AddError(
-            "Error retrieving teams",
-            "Could not retrieve teams, unexpected error: "+err.Error(),
-        )
-        return
-    }
+    // Set the base URL, using the default value if not provided
+	duplicateNameAllowed := false
+	if !plan.DuplicateNameAllowed.IsNull() && !plan.DuplicateNameAllowed.IsUnknown() {
+		duplicateNameAllowed = plan.DuplicateNameAllowed.ValueBool()
+	}
 
-    // Check if a team with the same name already exists
-    for _, team := range teams {
-        if team.Name == plan.Name.ValueString() {
+    // If duplicate names are not allowed, check if a project with the same name already exists
+    if !duplicateNameAllowed {
+        // Get the list of teams
+        teams, err := r.client.GetTeams(ctx)
+        if err != nil {
             resp.Diagnostics.AddError(
-                "Project already exists",
-                fmt.Sprintf("A project with the name '%s' already exists", plan.Name.ValueString()),
+                "Error retrieving teams",
+                "Could not retrieve teams, unexpected error: "+err.Error(),
             )
             return
+        }
+
+        if len(teams) > 0 {
+            // Take the ID of the first team found
+            teamID := teams[0].ID
+
+            // Get the list of projects for the team
+            projects, err := r.client.GetProjects(ctx, teamID)
+            if err != nil {
+                resp.Diagnostics.AddError(
+                    "Error retrieving projects",
+                    "Could not retrieve projects, unexpected error: "+err.Error(),
+                )
+                return
+            }
+
+            // Check if a project with the same name already exists
+            for _, project := range projects {
+                if project.Title == plan.Name.ValueString() {
+                    resp.Diagnostics.AddError(
+                        "Project already exists",
+                        fmt.Sprintf("A project with the name '%s' already exists", plan.Name.ValueString()),
+                    )
+                    return
+                }
+            }
         }
     }
 
@@ -218,13 +253,13 @@ func (r *projectResource) Update(ctx context.Context, req resource.UpdateRequest
         return
     }
 
-    // Check if the organization_id has changed
-    if !plan.OrganizationID.Equal(state.OrganizationID) {
+    // Check if the duplicate_name_allowed has changed
+    if !plan.DuplicateNameAllowed.Equal(state.DuplicateNameAllowed) {
         resp.Diagnostics.AddAttributeError(
-            path.Root("organization_id"),
+            path.Root("duplicate_name_allowed"),
             "Immutable Attribute Change",
-            "The 'organization_id' attribute cannot be changed once the project is created. "+
-                "To change the organization, delete the project and create a new one with the desired organization.",
+            "The 'duplicate_name_allowed' attribute cannot be changed once the project is created. "+
+                "To change this setting, delete the project and create a new one with the desired value.",
         )
         return
     }
