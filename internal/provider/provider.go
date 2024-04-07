@@ -155,5 +155,6 @@ func (p *paragonProvider) Resources(_ context.Context) []func() resource.Resourc
         NewEnvironmentSecretResource,
         NewTeamMemberResource,
         NewCLIKeyResource,
+        NewIntegrationCredentialsResource,
     }
 }
