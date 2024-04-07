@@ -143,6 +143,7 @@ func (p *paragonProvider) DataSources(_ context.Context) []func() datasource.Dat
         NewOrganizationDataSource,
         NewTeamsDataSource,
         NewTeamDataSource,
+        NewIntegrationsDataSource,
     }
 }
 
@@ -154,5 +155,7 @@ func (p *paragonProvider) Resources(_ context.Context) []func() resource.Resourc
         NewEnvironmentSecretResource,
         NewTeamMemberResource,
         NewCLIKeyResource,
+        NewIntegrationCredentialsResource,
+        NewIntegrationStatusResource,
     }
 }
