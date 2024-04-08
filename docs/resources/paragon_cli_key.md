@@ -37,3 +37,17 @@ resource "paragon_cli_key" "example" {
 
 - `id` (String) Identifier of the CLI key.
 - `key` (String, Sensitive) The CLI key.
+
+
+## JSON State Structure Example
+
+Here's a state sample, Please make sure you keep the `key' attribute secured
+
+```json
+{
+  "id": "cli_key_id",
+  "key": "cli_key.XXXXXXXXXXX",
+  "name": "key_name",
+  "organization_id": "your_org_id"
+}
+```

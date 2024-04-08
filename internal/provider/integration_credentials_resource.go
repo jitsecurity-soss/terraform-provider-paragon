@@ -11,6 +11,8 @@ import (
     "github.com/arielb135/terraform-provider-paragon/internal/client"
     "github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+    "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+    "github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -92,15 +94,24 @@ func (r *integrationCredentialsResource) Schema(_ context.Context, _ resource.Sc
             "oauth": schema.SingleNestedAttribute{
                 Description: "OAuth configuration for the integration credentials.",
                 Required:    true,
+                Sensitive:   true,
                 Attributes: map[string]schema.Attribute{
                     "client_id": schema.StringAttribute{
                         Description: "Client ID for OAuth.",
                         Required:    true,
+                        Sensitive:   true,
+                        Validators: []validator.String{
+                            stringvalidator.LengthAtLeast(1),
+                        },
+
                     },
                     "client_secret": schema.StringAttribute{
                         Description: "Client secret for OAuth.",
                         Required:    true,
                         Sensitive:   true,
+                        Validators: []validator.String{
+                            stringvalidator.LengthAtLeast(1),
+                        },
                     },
                 },
             },
@@ -383,8 +394,8 @@ func (r *integrationCredentialsResource) Delete(ctx context.Context, req resourc
     updateCredReq := client.CreateIntegrationCredentialsRequest{
         Name:          email,
         Values:        client.OAuthValues{
-            ClientID:     "",
-            ClientSecret: "",
+            ClientID:     "---",
+            ClientSecret: "---",
         },
         Provider:      state.Provider.ValueString(),
         Scheme:        state.Scheme.ValueString(),

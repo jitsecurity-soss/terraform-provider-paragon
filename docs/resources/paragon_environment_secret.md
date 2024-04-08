@@ -34,3 +34,28 @@ resource "paragon_environment_secret" "example" {
 
 - `id` (String) Identifier of the environment secret.
 - `hash` (String) Hash of the environment secret.
+
+## JSON State Structure Example
+
+Here's a **full** state sample, Note that the input value is marked as sensitive attribute.
+
+```json
+{
+    "schema_version": 0,
+    "attributes": {
+      "hash": "secret_hash",
+      "id": "secret_id",
+      "key": "secret_name",
+      "project_id": "your_project_id",
+      "value": "secret_value"
+    },
+    "sensitive_attributes": [
+      [
+        {
+          "type": "get_attr",
+          "value": "value"
+        }
+      ]
+    ]
+  }
+```

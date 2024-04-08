@@ -49,8 +49,6 @@ Here's a state sample:
 
 ```json
 {
-  "schema_version": 0,
-  "attributes": {
     "integrations": {
       "custom.wiremock": {
         "authentication_type": "oauth",
@@ -70,7 +68,5 @@ Here's a state sample:
       }
     },
     "project_id": "ce6c7134-98c9-48d6-a19c-30cd54dba758"
-  },
-  "sensitive_attributes": []
 }
 ```

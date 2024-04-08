@@ -2,11 +2,11 @@ package provider
 
 import (
     "context"
+    "fmt"
 
     "github.com/hashicorp/terraform-plugin-framework/datasource"
     "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
     "github.com/hashicorp/terraform-plugin-framework/types"
-    "github.com/hashicorp/terraform-plugin-framework/path"
     "github.com/arielb135/terraform-provider-paragon/internal/client"
 )
 
@@ -28,12 +28,12 @@ type teamDataSource struct {
 
 // teamDataSourceModel maps the data source schema data.
 type teamDataSourceModel struct {
-    ID             types.String       `tfsdk:"id"`
-    DateCreated    types.String       `tfsdk:"date_created"`
-    DateUpdated    types.String       `tfsdk:"date_updated"`
-    Name           types.String       `tfsdk:"name"`
-    Website        types.String       `tfsdk:"website"`
-    OrganizationID types.String       `tfsdk:"organization_id"`
+    ID             types.String `tfsdk:"id"`
+    DateCreated    types.String `tfsdk:"date_created"`
+    DateUpdated    types.String `tfsdk:"date_updated"`
+    Name           types.String `tfsdk:"name"`
+    Website        types.String `tfsdk:"website"`
+    OrganizationID types.String `tfsdk:"organization_id"`
 }
 
 // Configure adds the provider configured client to the data source.
@@ -57,11 +57,15 @@ func (d *teamDataSource) Metadata(_ context.Context, req datasource.MetadataRequ
 // Schema defines the schema for the data source.
 func (d *teamDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
     resp.Schema = schema.Schema{
-        Description: "Fetches a team by its ID.",
+        Description: "Fetches a team by its name.",
         Attributes: map[string]schema.Attribute{
+            "name": schema.StringAttribute{
+                Description: "The name of the team.",
+                Required:    true,
+            },
             "id": schema.StringAttribute{
                 Description: "Identifier for the team.",
-                Required:    true,
+                Computed:    true,
             },
             "date_created": schema.StringAttribute{
                 Description: "The creation date of the team.",
@@ -69,10 +73,6 @@ func (d *teamDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, r
             },
             "date_updated": schema.StringAttribute{
                 Description: "The last update date of the team.",
-                Computed:    true,
-            },
-            "name": schema.StringAttribute{
-                Description: "The name of the team.",
                 Computed:    true,
             },
             "website": schema.StringAttribute{
@@ -89,34 +89,50 @@ func (d *teamDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, r
 
 // Read refreshes the Terraform state with the latest data.
 func (d *teamDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-    var state teamDataSourceModel
-
-    // Retrieve the team ID from the configuration.
-    var teamID string
-    diags := req.Config.GetAttribute(ctx, path.Root("id"), &teamID)
+    var config teamDataSourceModel
+    diags := req.Config.Get(ctx, &config)
     resp.Diagnostics.Append(diags...)
     if resp.Diagnostics.HasError() {
         return
     }
 
-    // Retrieve the team using the GetTeamByID function.
-    team, err := d.client.GetTeamByID(ctx, teamID)
+    teamName := config.Name.ValueString()
+
+    // Retrieve all teams using the GetTeams function.
+    teams, err := d.client.GetTeams(ctx)
     if err != nil {
         resp.Diagnostics.AddError(
-            "Unable to Read Team",
+            "Unable to Read Teams",
             err.Error(),
         )
         return
     }
 
+    // Find the team with the matching name.
+    var foundTeam *client.Team
+    for _, team := range teams {
+        if team.Name == teamName {
+            foundTeam = &team
+            break
+        }
+    }
+
+    if foundTeam == nil {
+        resp.Diagnostics.AddError(
+            "Team Not Found",
+            fmt.Sprintf("Team with name '%s' not found", teamName),
+        )
+        return
+    }
+
     // Map the team data to the state.
-    state = teamDataSourceModel{
-        ID:             types.StringValue(team.ID),
-        DateCreated:    types.StringValue(team.DateCreated),
-        DateUpdated:    types.StringValue(team.DateUpdated),
-        Name:           types.StringValue(team.Name),
-        Website:        types.StringValue(team.Website),
-        OrganizationID: types.StringValue(team.OrganizationID),
+    state := teamDataSourceModel{
+        ID:             types.StringValue(foundTeam.ID),
+        DateCreated:    types.StringValue(foundTeam.DateCreated),
+        DateUpdated:    types.StringValue(foundTeam.DateUpdated),
+        Name:           types.StringValue(foundTeam.Name),
+        Website:        types.StringValue(foundTeam.Website),
+        OrganizationID: types.StringValue(foundTeam.OrganizationID),
     }
 
     // Set state
