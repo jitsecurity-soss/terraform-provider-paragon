@@ -38,3 +38,19 @@ resource "paragon_sdk_keys" "example" {
 - `revoked` (Boolean) Indicates if the SDK key is revoked.
 - `generated_date` (String) Date when the SDK key was generated.
 - `private_key` (String, Sensitive) Private key of the SDK key.
+
+## JSON State Structure Example
+
+Here's a state sample:
+
+```json
+{
+  "auth_type": "paragon",
+  "generated_date": "2024-04-07T11:43:23.731Z",
+  "id": "7e49dff4-e117-45d8-9a0d-9830fac2bcce",
+  "private_key": "-----BEGIN PRIVATE KEY-----......-----END PRIVATE KEY-----",
+  "project_id": "30080bde-b7b3-44a9-9e88-1ad316d2be16",
+  "revoked": false,
+  "version": "1"
+}
+```

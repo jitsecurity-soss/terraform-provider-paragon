@@ -33,3 +33,31 @@ The `teams` block contains:
 - `name` (String) The name of the team.
 - `website` (String) The website of the team.
 - `organization_id` (String) The ID of the organization the team belongs to.
+
+
+## JSON State Structure Example
+
+Here's a state sample:
+
+```json
+{
+  "teams": [
+    {
+      "date_created": "2024-03-21T17:37:39.902Z",
+      "date_updated": "2024-03-21T17:37:39.902Z",
+      "id": "your_team_id",
+      "name": "tean_name",
+      "organization_id": "your_org_id",
+      "website": ""
+    },
+    {
+      "date_created": "2024-04-21T17:37:39.902Z",
+      "date_updated": "2024-04-21T17:37:39.902Z",
+      "id": "your_team_id2",
+      "name": "tean_name2",
+      "organization_id": "your_org_id",
+      "website": ""
+    }    
+  ]
+}
+```

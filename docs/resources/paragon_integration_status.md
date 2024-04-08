@@ -3,8 +3,9 @@ page_title: "integration_status Resource - paragon"
 subcategory: ""
 description: |-
   Activates/deactivates an integration.
+---
 
-# integration_status (Resource)
+# paragon_integration_status (Resource)
 
 Controls the enablement of an integration.
 
@@ -32,3 +33,16 @@ resource "paragon_integration_status" "example" {
 ### Attributes Reference
 
 - `id` (String) Identifier of the integration. Same as `integration_id`.
+
+## JSON State Structure Example
+
+Here's a state sample
+
+```json
+{
+    "active": true,
+    "id": "integration_id",
+    "integration_id": "integration_id",
+    "project_id": "your_project_id"
+}
+```

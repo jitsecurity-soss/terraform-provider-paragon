@@ -3,8 +3,9 @@ page_title: "integration_credentials Resource - paragon"
 subcategory: ""
 description: |-
   Manages credentials for an integration.
+---
 
-# integration_credentials (Resource)
+# paragon_integration_credentials (Resource)
 
 Manages credentials for an integration.
 
@@ -46,3 +47,21 @@ resource "paragon_integration_credentials" "example" {
 - `id` (String) The unique identifier of the credentials resource.
 - `creds_provider` (String) Provider of the credentials (e.g., "custom" for custom integration, "jira").
 - `scheme` (String) The scheme used for authentication (e.g., "oauth_app").
+
+## JSON State Structure Example
+
+Here's a state sample, Please make sure you keep the `client_secret' attribute secured
+
+```json
+{
+    "creds_provider": "jira",
+    "id": "credentials_id",
+    "integration_id": "your_integration_id",
+    "oauth": {
+      "client_id": "your_client_id",
+      "client_secret": "your_client_secret"
+    },
+    "project_id": "your_project_id",
+    "scheme": "oauth_app"
+}
+```

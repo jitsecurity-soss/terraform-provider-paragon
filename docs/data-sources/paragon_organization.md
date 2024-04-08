@@ -44,3 +44,26 @@ The `organization` block contains:
 - `size` (String) The size of the organization (e.g. - 1-10).
 - `role` (String) The role of the owner of the organization.
 - `completed_qualification` (Boolean) Indicates if the organization has completed qualification.
+
+## JSON State Structure Example
+
+Here's a state sample:
+
+```json
+{
+    "name": "your_org_name",
+    "organization": {
+      "completed_qualification": true,
+      "date_created": "2024-03-06T13:18:11.762Z",
+      "date_updated": "2024-03-06T13:18:39.943Z",
+      "id": "your_org_id",
+      "name": "your_org_name",
+      "purpose": "let our customers use integrations",
+      "referral": "email",
+      "role": "cto",
+      "size": "10-49",
+      "type": "BUSINESS",
+      "website": ""
+    }
+}
+```
