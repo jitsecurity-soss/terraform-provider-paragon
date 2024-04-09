@@ -7,6 +7,8 @@ Wrap [paragon](https://useparagon.com) APIs with terraform resources - provider 
 
 In order to build the provider locally, just run `go install .` and the provider will be installed into your `$GOPATH/bin` directory.
 
+You can also run this command `GOBIN=YOUR_GO_PATH_BIN_DIRECTORY go install .`
+
 In order to test it, first update your `.terraformrc` file to include the following:
 
 ```hcl
