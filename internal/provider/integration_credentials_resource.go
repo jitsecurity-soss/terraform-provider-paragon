@@ -2,7 +2,6 @@ package provider
 
 import (
     "context"
-    "fmt"
     "strings"
 
     "github.com/hashicorp/terraform-plugin-framework/resource"
@@ -131,47 +130,24 @@ func (r *integrationCredentialsResource) Create(ctx context.Context, req resourc
     projectID := plan.ProjectID.ValueString()
     integrationID := plan.IntegrationID.ValueString()
 
-    // Retrieve the list of credentials for the project
-    credentials, err := r.client.GetCredentials(ctx, projectID)
+    // Retrieve the integration
+    integration, err := r.client.GetIntegration(ctx, projectID, integrationID)
     if err != nil {
         resp.Diagnostics.AddError(
-            "Error retrieving credentials",
-            "Could not retrieve credentials, unexpected error: "+err.Error(),
+            "Error retrieving integration",
+            "Could not retrieve integration, unexpected error: "+err.Error(),
         )
         return
     }
 
-    // Find the credential with the matching integration ID
-    var credential *client.Credential
-    for _, cred := range credentials {
-        if cred.IntegrationID == integrationID {
-            credential = &cred
-            break
+    if integration.Type == "custom" {
+        if plan.OAuth != nil && integration.CustomIntegration.AuthenticationType != "oauth" {
+            resp.Diagnostics.AddError(
+                "Invalid authentication type",
+                "The 'oauth' block is specified, but the custom integration's authentication type is not 'oauth'",
+            )
+            return
         }
-    }
-
-    if credential == nil {
-        resp.Diagnostics.AddError(
-            "Integration not found",
-            fmt.Sprintf("Integration with ID '%s' not found in the project", integrationID),
-        )
-        return
-    }
-
-    if credential.Scheme != "oauth_app" {
-        resp.Diagnostics.AddError(
-            "Invalid credential scheme",
-            fmt.Sprintf("Integration with ID '%s' does not have the 'oauth_app' scheme", integrationID),
-        )
-        return
-    }
-
-    if plan.OAuth == nil {
-        resp.Diagnostics.AddError(
-            "Missing OAuth configuration",
-            "The 'oauth' block is required for creating integration credentials",
-        )
-        return
     }
 
     // Extract the user email from the access token
@@ -186,17 +162,17 @@ func (r *integrationCredentialsResource) Create(ctx context.Context, req resourc
 
     // Create the integration credentials
     createCredReq := client.CreateIntegrationCredentialsRequest{
-        Name:          email,
-        Values:        client.OAuthValues{
+        Name: email,
+        Values: client.OAuthValues{
             ClientID:     plan.OAuth.ClientID.ValueString(),
             ClientSecret: plan.OAuth.ClientSecret.ValueString(),
         },
-        Provider:      credential.Provider,
-        Scheme:        credential.Scheme,
+        Provider:      integration.Type,
+        Scheme:        "oauth_app", // Currently only oauth_app creds are supported
         IntegrationID: integrationID,
     }
 
-    _, err = r.client.CreateIntegrationCredentials(ctx, projectID, createCredReq)
+    credential, err := r.client.CreateIntegrationCredentials(ctx, projectID, createCredReq)
     if err != nil {
         resp.Diagnostics.AddError(
             "Error creating integration credentials",
