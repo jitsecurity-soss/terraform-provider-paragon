@@ -30,7 +30,7 @@ resource "paragon_team_member" "team_member" {
 # option 2 - from the project you created
 resource "paragon_project" "my_proj" {
   organization_id = "org-id"
-  name            = "Example Project"
+  title           = "Example Project"
 }
 
 resource "paragon_team_member" "team_member" {
