@@ -33,7 +33,7 @@ data "paragon_organization" "my_org" {
 # Create a new project.
 resource "paragon_project" "main_pargon_project" {
   organization_id = data.paragon_organization.my_org.organization.id
-  name            = "my_paragon_project"
+  title           = "my_paragon_project"
 }
 
 # Create a new Paragon environment secret
