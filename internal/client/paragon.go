@@ -203,7 +203,7 @@ type Project struct {
     DateUpdated       string      `json:"dateUpdated"`
 }
 
-func (c *Client) CreateProject(ctx context.Context, organizationID, projectName string) (*Project, error) {
+func (c *Client) CreateProject(ctx context.Context, organizationID, projectName string) (*Project, *Project, error) {
     url := fmt.Sprintf("%s/teams?organizationId=%s", c.baseURL, organizationID)
 
     reqBody := CreateProjectRequest{
@@ -215,40 +215,67 @@ func (c *Client) CreateProject(ctx context.Context, organizationID, projectName 
 
     req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonBody))
     if err != nil {
-        return nil, err
+        return nil, nil, err
     }
     req.Header.Set("Content-Type", "application/json")
     req.Header.Set("Authorization", "Bearer "+c.accessToken)
 
     resp, err := c.httpClient.Do(req)
     if err != nil {
-        return nil, err
+        return nil, nil, err
     }
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusCreated {
-        return nil, fmt.Errorf("failed to create project with status code: %d", resp.StatusCode)
+        return nil, nil, fmt.Errorf("failed to create project with status code: %d", resp.StatusCode)
     }
 
     var createProjectResp CreateProjectResponse
     err = json.NewDecoder(resp.Body).Decode(&createProjectResp)
     if err != nil {
-        return nil, err
+        return nil, nil, err
     }
 
     var connectProject *Project
+    var automateProject *Project
     for _, project := range createProjectResp.Projects {
         if project.IsConnectProject {
-            connectProject = &project
-            break
+            tflog.Debug(ctx, fmt.Sprintf("connect project ID: %s", project.ID))
+            connectProject = &Project{
+                ID:                project.ID,
+                Title:             project.Title,
+                OwnerID:           project.OwnerID,
+                TeamID:            project.TeamID,
+                IsConnectProject:  project.IsConnectProject,
+                IsHidden:          project.IsHidden,
+                DateCreated:       project.DateCreated,
+                DateUpdated:       project.DateUpdated,
+            }
+        } else {
+            tflog.Debug(ctx, fmt.Sprintf("NON connect project ID (older): %s", project.ID))
+            automateProject = &Project{
+                ID:                project.ID,
+                Title:             project.Title,
+                OwnerID:           project.OwnerID,
+                TeamID:            project.TeamID,
+                IsConnectProject:  project.IsConnectProject,
+                IsHidden:          project.IsHidden,
+                DateCreated:       project.DateCreated,
+                DateUpdated:       project.DateUpdated,
+            }
         }
     }
 
     if connectProject == nil {
-        return nil, fmt.Errorf("connect project not found in the response")
+        return nil, nil, fmt.Errorf("connect project not found in the response")
     }
 
-    return connectProject, nil
+    if automateProject == nil {
+        // That means that the older project is no longer created. We should return the connect project only
+        return connectProject, nil, nil
+    }
+
+    return connectProject, automateProject, nil
 }
 
 func (c *Client) GetProjects(ctx context.Context, teamID string) ([]Project, error) {
@@ -347,7 +374,7 @@ func (c *Client) UpdateProjectTitle(ctx context.Context, projectID, teamID, newT
 
 func (c *Client) DeleteProject(ctx context.Context, projectID, teamID string) error {
     url := fmt.Sprintf("%s/projects/%s?teamId=%s", c.baseURL, projectID, teamID)
-
+    tflog.Debug(ctx, fmt.Sprintf("url to delete: %s", url))
     req, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
     if err != nil {
         return err
@@ -360,6 +387,7 @@ func (c *Client) DeleteProject(ctx context.Context, projectID, teamID string) er
     }
     defer resp.Body.Close()
 
+    tflog.Debug(ctx, fmt.Sprintf("delete response: %d", resp.StatusCode))
     if resp.StatusCode != http.StatusOK {
         return fmt.Errorf("failed to delete project with status code: %d", resp.StatusCode)
     }
