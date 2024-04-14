@@ -7,11 +7,14 @@ import (
     "github.com/hashicorp/terraform-plugin-framework/resource"
     "github.com/hashicorp/terraform-plugin-framework/resource/schema"
     "github.com/hashicorp/terraform-plugin-framework/types"
+    "github.com/hashicorp/terraform-plugin-framework/attr"
     "github.com/arielb135/terraform-provider-paragon/internal/client"
     "github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
     "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+    "github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
     "github.com/hashicorp/terraform-plugin-framework/schema/validator"
+
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -43,6 +46,7 @@ type integrationCredentialsResourceModel struct {
 type oauthModel struct {
     ClientID     types.String `tfsdk:"client_id"`
     ClientSecret types.String `tfsdk:"client_secret"`
+    Scopes       types.List   `tfsdk:"scopes"`
 }
 
 // Configure adds the provider configured client to the resource.
@@ -112,6 +116,15 @@ func (r *integrationCredentialsResource) Schema(_ context.Context, _ resource.Sc
                             stringvalidator.LengthAtLeast(1),
                         },
                     },
+                    "scopes": schema.ListAttribute{
+                        Description: "Scopes for OAuth.",
+                        ElementType: types.StringType,
+                        Required:    true,
+                        Sensitive:   true,
+                        Validators: []validator.List{   // Change from []validator.String to []validator.List
+                            listvalidator.SizeAtLeast(1),
+                        },
+                    },
                 },
             },
         },
@@ -160,12 +173,22 @@ func (r *integrationCredentialsResource) Create(ctx context.Context, req resourc
         return
     }
 
+    // Extract the scopes
+    var scopes []string
+    diags = plan.OAuth.Scopes.ElementsAs(ctx, &scopes, false)
+    resp.Diagnostics.Append(diags...)
+    if resp.Diagnostics.HasError() {
+        return
+    }
+    scopesStr := strings.Join(scopes, " ")
+
     // Create the integration credentials
     createCredReq := client.CreateIntegrationCredentialsRequest{
         Name: email,
         Values: client.OAuthValues{
             ClientID:     plan.OAuth.ClientID.ValueString(),
             ClientSecret: plan.OAuth.ClientSecret.ValueString(),
+            Scopes:       scopesStr,
         },
         Provider:      integration.Type,
         Scheme:        "oauth_app", // Currently only oauth_app creds are supported
@@ -244,10 +267,26 @@ func (r *integrationCredentialsResource) Read(ctx context.Context, req resource.
         return
     }
 
+    scopesStr, ok := credential.Values["scopes"].(string)
+    if !ok {
+        resp.Diagnostics.AddError(
+            "Error extracting scopes",
+            "Could not extract scopes from the decrypted credential values",
+        )
+        return
+    }
+
+    scopesArr := strings.Split(scopesStr, " ")
+    var scopesAttr []attr.Value
+    for _, scope := range scopesArr {
+        scopesAttr = append(scopesAttr, types.StringValue(scope))
+    }
+
     // Update the OAuth block in the state
     state.OAuth = &oauthModel{
         ClientID:     types.StringValue(clientID),
         ClientSecret: types.StringValue(clientSecret),
+        Scopes:       types.ListValueMust(types.StringType, scopesAttr),
     }
 
     // Set the refreshed state
@@ -297,12 +336,22 @@ func (r *integrationCredentialsResource) Update(ctx context.Context, req resourc
         return
     }
 
+    // Extract the scopes
+    var scopes []string
+    diags = plan.OAuth.Scopes.ElementsAs(ctx, &scopes, false)
+    resp.Diagnostics.Append(diags...)
+    if resp.Diagnostics.HasError() {
+        return
+    }
+    scopesStr := strings.Join(scopes, " ")
+
     // Update the integration credentials
     updateCredReq := client.CreateIntegrationCredentialsRequest{
         Name:          email,
         Values:        client.OAuthValues{
             ClientID:     plan.OAuth.ClientID.ValueString(),
             ClientSecret: plan.OAuth.ClientSecret.ValueString(),
+            Scopes:       scopesStr,
         },
         Provider:      state.Provider.ValueString(),
         Scheme:        state.Scheme.ValueString(),
@@ -331,7 +380,7 @@ func (r *integrationCredentialsResource) Update(ctx context.Context, req resourc
     }
 }
 
-// There's no really deletion of creds, so do nothing and stop managing it.
+// Delete deletes the resource and removes the Terraform state on success.
 func (r *integrationCredentialsResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
     var state integrationCredentialsResourceModel
     diags := req.State.Get(ctx, &state)
@@ -341,48 +390,13 @@ func (r *integrationCredentialsResource) Delete(ctx context.Context, req resourc
     }
 
     projectID := state.ProjectID.ValueString()
-    integrationID := state.IntegrationID.ValueString()
     credentialID := state.ID.ValueString()
 
-    _, err := r.client.GetDecryptedCredential(ctx, projectID, credentialID)
-    if err != nil {
-        if strings.Contains(err.Error(), "status code: 404") {
-            return
-        }
-        resp.Diagnostics.AddError(
-            "Error retrieving decrypted credential",
-            "Could not retrieve decrypted credential, unexpected error: "+err.Error(),
-        )
-        return
-    }
-
-    // Extract the user email from the access token
-    email, err := r.client.GetUserEmailFromToken()
+    err := r.client.DeleteCredentials(ctx, projectID, credentialID)
     if err != nil {
         resp.Diagnostics.AddError(
-            "Error extracting user email from access token",
-            "Could not extract user email from access token, unexpected error: "+err.Error(),
-        )
-        return
-    }
-
-    // Update creds by just cleanup
-    updateCredReq := client.CreateIntegrationCredentialsRequest{
-        Name:          email,
-        Values:        client.OAuthValues{
-            ClientID:     "---",
-            ClientSecret: "---",
-        },
-        Provider:      state.Provider.ValueString(),
-        Scheme:        state.Scheme.ValueString(),
-        IntegrationID: integrationID,
-    }
-
-    _, err = r.client.CreateIntegrationCredentials(ctx, projectID, updateCredReq)
-    if err != nil {
-        resp.Diagnostics.AddError(
-            "Error updating integration credentials",
-            "Could not update integration credentials, unexpected error: "+err.Error(),
+            "Error deleting credentials",
+            "Could not delete credentials, unexpected error: "+err.Error(),
         )
         return
     }
