@@ -1178,8 +1178,9 @@ type CreateIntegrationCredentialsRequest struct {
 }
 
 type OAuthValues struct {
-    ClientID     string `json:"clientId"`
-    ClientSecret string `json:"clientSecret"`
+    ClientID     string   `json:"clientId"`
+    ClientSecret string   `json:"clientSecret"`
+    Scopes       string   `json:"scopes"` // Should be with spaces
 }
 
 func (c *Client) CreateIntegrationCredentials(ctx context.Context, projectID string, req CreateIntegrationCredentialsRequest) (*Credential, error) {
@@ -1258,6 +1259,32 @@ func (c *Client) GetDecryptedCredential(ctx context.Context, projectID, credID s
     }
 
     return &credential, nil
+}
+
+func (c *Client) DeleteCredentials(ctx context.Context, projectID, credentialsID string) error {
+    url := fmt.Sprintf("%s/projects/%s/credentials/%s", c.baseURL, projectID, credentialsID)
+
+    req, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
+    if err != nil {
+        return err
+    }
+    req.Header.Set("Authorization", "Bearer "+c.accessToken)
+
+    resp, err := c.httpClient.Do(req)
+    if err != nil {
+        return err
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode == http.StatusNotFound {
+        return nil
+    }
+
+    if resp.StatusCode != http.StatusOK {
+        return fmt.Errorf("failed to delete credentials with status code: %d", resp.StatusCode)
+    }
+
+    return nil
 }
 
 func (c *Client) UpdateIntegrationStatus(ctx context.Context, projectID, integrationID string, active bool) (*Integration, error) {

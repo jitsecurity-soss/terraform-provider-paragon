@@ -16,6 +16,21 @@ The credentials should be stored securely and not exposed in any public reposito
 
 -> **NOTE:** For regular non-custom integration, there's no way verifying what type of authentication they required, so there's no restriction updating them.
 
+## Scopes in oauth app
+Oauth integrations usually come with default scopes that if not supplied - might cause the integration not to work.
+It's highly recommended to check them out (via UI -> Settings -> so you can set them as a resource, for example - the basic jira configurations look like this:
+```terraform
+resource "paragon_integration_credentials" "jira" {
+  integration_id = "your_integration_id"
+  project_id = "your_project_id"
+  oauth = {
+    client_id = "client_id"
+    client_secret = "secret"
+    scopes = ["offline_access", "read:jira-user"]
+  }
+}
+```
+
 ## Example Usage
 
 Use `paragon_integrations` data source to find out the relevant `integration_id`.
@@ -28,6 +43,7 @@ resource "paragon_integration_credentials" "example" {
   oauth = {
     client_id = "client_id"
     client_secret = "secret"
+    scopes = ["scope1", "scope2"]
   }
 }
 ```
@@ -41,6 +57,7 @@ resource "paragon_integration_credentials" "example" {
 - `oauth` (Object, Required) OAuth credentials for the relevant OAuth service.
   - `client_id` (String, Required) Client ID for the OAuth service.
   - `client_secret` (String, Required) Client secret for the OAuth service.
+  - `scopes` (List of Strings, Required) Scopes for the OAuth service, Please note per integration which are mandatory to avoid choosing incorrect scopes.
 
 ### Attributes Reference
 
@@ -59,7 +76,11 @@ Here's a state sample, Please make sure you keep the `client_secret' attribute s
     "integration_id": "your_integration_id",
     "oauth": {
       "client_id": "your_client_id",
-      "client_secret": "your_client_secret"
+      "client_secret": "your_client_secret",
+      "scopes": [
+                "scope1",
+                "scope2"
+              ]
     },
     "project_id": "your_project_id",
     "scheme": "oauth_app"
