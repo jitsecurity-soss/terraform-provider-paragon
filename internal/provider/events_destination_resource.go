@@ -4,6 +4,7 @@ package provider
 import (
     "context"
     "regexp"
+    "strings"
 
     "github.com/hashicorp/terraform-plugin-framework/resource"
     "github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -234,9 +235,15 @@ func (r *eventsDestinationResource) Read(ctx context.Context, req resource.ReadR
     // Retrieve the events destination using the API
     eventDestination, err := r.client.GetEventDestination(ctx, state.ProjectID.ValueString(), state.ID.ValueString())
     if err != nil {
+        // Check if the error indicates a 404 status code
+        if strings.Contains(err.Error(), "status code: 404") {
+            // If the SDK key is not found, remove the resource to trigger recreation
+            resp.State.RemoveResource(ctx)
+            return
+        }
         resp.Diagnostics.AddError(
             "Error reading event destination",
-            err.Error(),
+            "Could not read event destination, unexpected error: "+err.Error(),
         )
         return
     }
