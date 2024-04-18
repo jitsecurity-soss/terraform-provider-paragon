@@ -6,7 +6,9 @@ import (
     "context"
     "encoding/json"
     "fmt"
+    "io"
     "net/http"
+    "github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 type CreateEventDestinationRequest struct {
@@ -19,8 +21,8 @@ type EventConfiguration struct {
     EmailTo string            `json:"emailTo,omitempty"`
     URL     string            `json:"url,omitempty"`
     Events  []string          `json:"events"`
-    Body    map[string]string `json:"body,omitempty"`
-    Headers map[string]string `json:"headers,omitempty"`
+    Body    WebhookBody        `json:"body,omitempty"`
+    Headers map[string]string   `json:"headers,omitempty"`
 }
 
 type EventDestination struct {
@@ -47,18 +49,11 @@ func (c *Client) CreateOrUpdateEventDestination(ctx context.Context, projectID, 
         httpMethod = "PUT"
         url = fmt.Sprintf("%s/projects/%s/event-destinations/%s", c.baseURL, projectID, eventID)
     }
-//
-//     if req.Type == "webhook" {
-//         apiBody, err := ConvertToAPIFormat(req.Configuration.Body)
-//         if err != nil {
-//             return nil, err
-//         }
-//         req.Configuration.Body = apiBody
-//     }
-
 
     req.ProjectID = projectID
     jsonBody, err := json.Marshal(req)
+    tflog.Debug(ctx, fmt.Sprintf("before transform : %s", jsonBody))
+
     if err != nil {
         return nil, err
     }
@@ -80,11 +75,20 @@ func (c *Client) CreateOrUpdateEventDestination(ctx context.Context, projectID, 
         return nil, fmt.Errorf("failed to create/update event destination with status code: %d", resp.StatusCode)
     }
 
-    var eventDestination EventDestination
-    err = json.NewDecoder(resp.Body).Decode(&eventDestination)
+    responseBody, err := io.ReadAll(resp.Body)
     if err != nil {
-        return nil, err
+        return nil, fmt.Errorf("error reading response body: %v", err)
     }
+
+    tflog.Debug(ctx, fmt.Sprintf("body read read read : %s", responseBody))
+
+    var eventDestination EventDestination
+    err = json.Unmarshal(responseBody, &eventDestination)
+    if err != nil {
+        return nil, fmt.Errorf("error decoding response body: %v, json: %s", err, string(responseBody))
+    }
+
+    tflog.Debug(ctx, "RETURNING")
 
     return &eventDestination, nil
 }

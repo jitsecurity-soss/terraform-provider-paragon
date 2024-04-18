@@ -1,17 +1,14 @@
-// client.go
 package client
 
 import (
-    "encoding/json"
+    "regexp"
     "strings"
 )
 
-// tools
-
 type WebhookBody struct {
-    DataType string      `json:"dataType"`
-    Type     string      `json:"type"`
-    Parts    []BodyPart  `json:"parts"`
+    DataType string     `json:"dataType"`
+    Type     string     `json:"type"`
+    Parts    []BodyPart `json:"parts"`
 }
 
 type BodyPart struct {
@@ -22,59 +19,66 @@ type BodyPart struct {
     Name     string   `json:"name,omitempty"`
 }
 
-func ConvertToAPIFormat(body string) (*WebhookBody, error) {
-    var bodyParts []interface{}
-    err := json.Unmarshal([]byte(body), &bodyParts)
-    if err != nil {
-        return nil, err
+func ConvertToWebhookAPIFormat(input string) (*WebhookBody, error) {
+    tokenRegex := regexp.MustCompile(`{{\$\.(.*?)}}`)
+    var parts []BodyPart
+    lastIndex := 0
+
+    for _, match := range tokenRegex.FindAllStringSubmatchIndex(input, -1) {
+        beforeToken := input[lastIndex:match[0]]
+        parts = append(parts, BodyPart{
+            DataType: "STRING",
+            Type:     "VALUE",
+            Value:    beforeToken,
+        })
+
+        tokenContent := input[match[2]:match[3]]
+        path := strings.Split(tokenContent, ".")
+        parts = append(parts, BodyPart{
+            Type: "OBJECT_VALUE",
+            Path: path,
+            Name: path[0],
+        })
+
+        lastIndex = match[1]
     }
 
-    var apiBody WebhookBody
-    apiBody.DataType = "ANY"
-    apiBody.Type = "TOKENIZED"
-    apiBody.Parts = make([]BodyPart, 0)
+    if lastIndex < len(input) {
+        remaining := input[lastIndex:]
+        parts = append(parts, BodyPart{
+            DataType: "STRING",
+            Type:     "VALUE",
+            Value:    remaining,
+        })
+    }
 
-    for _, part := range bodyParts {
-        partMap, ok := part.(map[string]interface{})
-        if !ok {
-            continue
-        }
-
-        for _, value := range partMap {
-            if strings.HasPrefix(value.(string), "{{") && strings.HasSuffix(value.(string), "}}") {
-                path := strings.Trim(value.(string), "{}")
-                pathParts := strings.Split(path, ".")
-                apiBody.Parts = append(apiBody.Parts, BodyPart{
-                    Type: "OBJECT_VALUE",
-                    Path: pathParts[1:],
-                    Name: pathParts[1],
-                })
-            } else {
-                escapedValue, _ := json.Marshal(value)
-                apiBody.Parts = append(apiBody.Parts, BodyPart{
-                    DataType: "STRING",
-                    Type:     "VALUE",
-                    Value:    strings.ReplaceAll(string(escapedValue), `"`, `\"`),
-                })
-            }
-        }
+    apiBody := WebhookBody{
+        DataType: "ANY",
+        Type:     "TOKENIZED",
+        Parts:    parts,
     }
 
     return &apiBody, nil
 }
 
-func ConvertToMultilineFormat(body *WebhookBody) (string, error) {
-    var multilineParts []string
+func escapeNewlines(input string) string {
+    return strings.ReplaceAll(input, "\n", "\\n")
+}
 
-    for _, part := range body.Parts {
-        if part.Type == "OBJECT_VALUE" {
-            multilineParts = append(multilineParts, "{{"+strings.Join(part.Path, ".")+"}}")
-        } else if part.Type == "VALUE" {
-            unescapedValue := strings.ReplaceAll(part.Value, `\"`, `"`)
-            multilineParts = append(multilineParts, unescapedValue)
-        }
-    }
+func ConvertPartsToString(body WebhookBody) string {
+	var result strings.Builder
 
-    multilineBody := strings.Join(multilineParts, "")
-    return multilineBody, nil
+	for _, part := range body.Parts {
+		if part.Type == "VALUE" {
+			result.WriteString(part.Value)
+		} else if part.Type == "OBJECT_VALUE" {
+			if len(part.Path) > 0 {
+				result.WriteString("{{$.")
+				result.WriteString(strings.Join(part.Path, "."))
+				result.WriteString("}}")
+			}
+		}
+	}
+
+	return result.String()
 }

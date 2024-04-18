@@ -1,10 +1,13 @@
-// provider/events_destination_resource.go
+
+// events_destination_resource.go
 package provider
 
 import (
     "context"
     "regexp"
     "strings"
+    "fmt"
+    "encoding/json"
 
     "github.com/hashicorp/terraform-plugin-framework/resource"
     "github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -13,6 +16,7 @@ import (
     "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
     "github.com/hashicorp/terraform-plugin-framework/schema/validator"
     "github.com/hashicorp/terraform-plugin-framework/attr"
+    "github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -46,7 +50,7 @@ type emailBlock struct {
 
 type webhookBlock struct {
     URL     types.String           `tfsdk:"url"`
-    Body    types.Map              `tfsdk:"body"`
+    Body    types.String           `tfsdk:"body"`
     Headers []webhookHeaderBlock   `tfsdk:"headers"`
 }
 
@@ -112,8 +116,7 @@ func (r *eventsDestinationResource) Schema(_ context.Context, _ resource.SchemaR
                         Description: "URL to send webhook notifications to.",
                         Required:    true,
                     },
-                    "body": schema.MapAttribute{
-                        ElementType: types.StringType,
+                    "body": schema.StringAttribute{
                         Description: "Body to send with the webhook.",
                         Required:    true,
                     },
@@ -190,80 +193,97 @@ func (r *eventsDestinationResource) Create(ctx context.Context, req resource.Cre
         for _, header := range plan.Webhook.Headers {
             headers[header.Key.ValueString()] = header.Value.ValueString()
         }
-        body := make(map[string]string)
-        for key, value := range plan.Webhook.Body.Elements() {
-            body[key] = value.(types.String).ValueString()
-        }
-        eventDestination, err = r.client.CreateOrUpdateEventDestination(ctx, plan.ProjectID.ValueString(), "", client.CreateEventDestinationRequest{
-            Type: "webhook",
-            Configuration: client.EventConfiguration{
-                URL:     plan.Webhook.URL.ValueString(),
-                Body:    body,
-                Events:  events,
-                Headers: headers,
-            },
-        })
-    }
-    if err != nil {
-        resp.Diagnostics.AddError(
-            "Error creating event destination",
-            err.Error(),
-        )
-        return
-    }
 
-    // Set state to fully populated data
-    plan.ID = types.StringValue(eventDestination.ID)
-    diags = resp.State.Set(ctx, plan)
-    resp.Diagnostics.Append(diags...)
-    if resp.Diagnostics.HasError() {
-        return
-    }
+       apiBody, err := client.ConvertToWebhookAPIFormat(plan.Webhook.Body.ValueString())
+       if err != nil {
+           resp.Diagnostics.AddError(
+               "Error converting webhook body",
+               err.Error(),
+           )
+           return
+       }
+
+
+       eventDestination, err = r.client.CreateOrUpdateEventDestination(ctx, plan.ProjectID.ValueString(), "", client.CreateEventDestinationRequest{
+           Type: "webhook",
+           Configuration: client.EventConfiguration{
+               URL:     plan.Webhook.URL.ValueString(),
+               Body:    *apiBody,
+               Events:  events,
+               Headers: headers,
+           },
+       })
+   }
+
+   if err != nil {
+       resp.Diagnostics.AddError(
+           "Error creating event destination",
+           err.Error(),
+       )
+       return
+   }
+
+
+   tflog.Debug(ctx, "Created event destination")
+   tflog.Debug(ctx, fmt.Sprintf("this is the event destination: %s", eventDestination))
+
+
+   // Set state to fully populated data
+   plan.ID = types.StringValue(eventDestination.ID)
+
+   tflog.Debug(ctx, fmt.Sprintf("this is the plan: %s", plan))
+   diags = resp.State.Set(ctx, plan)
+   resp.Diagnostics.Append(diags...)
+   if resp.Diagnostics.HasError() {
+       return
+   }
 }
 
-// Read refreshes the Terraform state with the latest data.
+
 // Read refreshes the Terraform state with the latest data.
 func (r *eventsDestinationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-    // Get the events destination ID from the state
-    var state eventsDestinationResourceModel
-    diags := req.State.Get(ctx, &state)
-    resp.Diagnostics.Append(diags...)
-    if resp.Diagnostics.HasError() {
-        return
-    }
+   // Get the events destination ID from the state
 
-    // Retrieve the events destination using the API
-    eventDestination, err := r.client.GetEventDestination(ctx, state.ProjectID.ValueString(), state.ID.ValueString())
-    if err != nil {
-        // Check if the error indicates a 404 status code
-        if strings.Contains(err.Error(), "status code: 404") {
-            // If the SDK key is not found, remove the resource to trigger recreation
-            resp.State.RemoveResource(ctx)
-            return
-        }
-        resp.Diagnostics.AddError(
-            "Error reading event destination",
-            "Could not read event destination, unexpected error: "+err.Error(),
-        )
-        return
-    }
+   var state eventsDestinationResourceModel
+   diags := req.State.Get(ctx, &state)
+   resp.Diagnostics.Append(diags...)
+   if resp.Diagnostics.HasError() {
+       return
+   }
 
-    // Update the state with the retrieved data
-    state.ID = types.StringValue(eventDestination.ID)
-    state.ProjectID = types.StringValue(eventDestination.ProjectID)
+   // Retrieve the events destination using the API
+   eventDestination, err := r.client.GetEventDestination(ctx, state.ProjectID.ValueString(), state.ID.ValueString())
+   if err != nil {
+       // Check if the error indicates a 404 status code
+       if strings.Contains(err.Error(), "status code: 404") {
+           // If the event destination is not found, remove the resource to trigger recreation
+           resp.State.RemoveResource(ctx)
+           return
+       }
+       resp.Diagnostics.AddError(
+           "Error reading event destination",
+           "Could not read event destination, unexpected error: "+err.Error(),
+       )
+       return
+   }
 
-    events := make([]attr.Value, len(eventDestination.Configuration.Events))
-    for i, event := range eventDestination.Configuration.Events {
-        events[i] = types.StringValue(event)
-    }
-    state.Events = types.ListValueMust(types.StringType, events)
+   // Update the state with the retrieved data
+   state.ID = types.StringValue(eventDestination.ID)
+   state.ProjectID = types.StringValue(eventDestination.ProjectID)
 
-    if eventDestination.Type == "email" {
-        state.Email = &emailBlock{
-            Address: types.StringValue(eventDestination.Configuration.EmailTo),
-        }
-        state.Webhook = nil
-    } else if eventDestination.Type == "webhook" {
+   events := make([]attr.Value, len(eventDestination.Configuration.Events))
+   for i, event := range eventDestination.Configuration.Events {
+       events[i] = types.StringValue(event)
+   }
+   state.Events = types.ListValueMust(types.StringType, events)
+
+   if eventDestination.Type == "email" {
+       state.Email = &emailBlock{
+           Address: types.StringValue(eventDestination.Configuration.EmailTo),
+       }
+       state.Webhook = nil
+   } else if eventDestination.Type == "webhook" {
+
         headers := make([]webhookHeaderBlock, 0, len(eventDestination.Configuration.Headers))
         for key, value := range eventDestination.Configuration.Headers {
             headers = append(headers, webhookHeaderBlock{
@@ -271,24 +291,31 @@ func (r *eventsDestinationResource) Read(ctx context.Context, req resource.ReadR
                 Value: types.StringValue(value),
             })
         }
-        body := make(map[string]attr.Value)
-        for key, value := range eventDestination.Configuration.Body {
-            body[key] = types.StringValue(value)
-        }
-        state.Email = nil
-        state.Webhook = &webhookBlock{
-            URL:     types.StringValue(eventDestination.Configuration.URL),
-            Body:    types.MapValueMust(types.StringType, body),
-            Headers: headers,
-        }
-    }
 
-    // Set the refreshed state
-    diags = resp.State.Set(ctx, &state)
-    resp.Diagnostics.Append(diags...)
-    if resp.Diagnostics.HasError() {
-        return
-    }
+
+        // Marshal the struct to JSON
+        jsonData, err := json.Marshal(eventDestination.Configuration.Body)
+        if err != nil {
+            fmt.Println("Error marshaling JSON:", err)
+            return
+        }
+       tflog.Debug(ctx, fmt.Sprintf("this is what we convert: %s", jsonData))
+       body := client.ConvertPartsToString(eventDestination.Configuration.Body)
+       tflog.Debug(ctx, fmt.Sprintf("this is the body: '%s'", body))
+       state.Email = nil
+       state.Webhook = &webhookBlock{
+           URL:     types.StringValue(eventDestination.Configuration.URL),
+           Body:    types.StringValue(body),
+           Headers: headers,
+       }
+   }
+
+   // Set the refreshed state
+   diags = resp.State.Set(ctx, &state)
+   resp.Diagnostics.Append(diags...)
+   if resp.Diagnostics.HasError() {
+       return
+   }
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
@@ -334,15 +361,19 @@ func (r *eventsDestinationResource) Update(ctx context.Context, req resource.Upd
        for _, header := range plan.Webhook.Headers {
            headers[header.Key.ValueString()] = header.Value.ValueString()
        }
-       body := make(map[string]string)
-       for key, value := range plan.Webhook.Body.Elements() {
-           body[key] = value.(types.String).ValueString()
+       apiBody, err := client.ConvertToWebhookAPIFormat(plan.Webhook.Body.ValueString())
+       if err != nil {
+           resp.Diagnostics.AddError(
+               "Error converting webhook body",
+               err.Error(),
+           )
+           return
        }
        eventDestination, err = r.client.CreateOrUpdateEventDestination(ctx, plan.ProjectID.ValueString(), state.ID.ValueString(), client.CreateEventDestinationRequest{
            Type: "webhook",
            Configuration: client.EventConfiguration{
                URL:     plan.Webhook.URL.ValueString(),
-               Body:    body,
+               Body:    *apiBody,
                Events:  events,
                Headers: headers,
            },
