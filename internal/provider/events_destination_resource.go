@@ -51,13 +51,8 @@ type emailBlock struct {
 type webhookBlock struct {
     URL     types.String           `tfsdk:"url"`
     Body    types.String           `tfsdk:"body"`
-    Headers []webhookHeaderBlock   `tfsdk:"headers"`
 }
 
-type webhookHeaderBlock struct {
-    Key   types.String `tfsdk:"key"`
-    Value types.String `tfsdk:"value"`
-}
 
 // Configure adds the provider configured client to the resource.
 func (r *eventsDestinationResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
@@ -120,23 +115,6 @@ func (r *eventsDestinationResource) Schema(_ context.Context, _ resource.SchemaR
                         Description: "Body to send with the webhook.",
                         Required:    true,
                     },
-                    "headers": schema.ListNestedAttribute{
-                        Description: "List of headers to include with the webhook.",
-                        Optional:    true,
-                        NestedObject: schema.NestedAttributeObject{
-                            Attributes: map[string]schema.Attribute{
-                                "key": schema.StringAttribute{
-                                    Description: "Header key.",
-                                    Required:    true,
-                                },
-                                "value": schema.StringAttribute{
-                                    Description: "Header value.",
-                                    Required:    true,
-                                    Sensitive:   true,
-                                },
-                            },
-                        },
-                    },
                 },
             },
         },
@@ -189,10 +167,6 @@ func (r *eventsDestinationResource) Create(ctx context.Context, req resource.Cre
             },
         })
     } else if plan.Webhook != nil {
-        headers := make(map[string]string)
-        for _, header := range plan.Webhook.Headers {
-            headers[header.Key.ValueString()] = header.Value.ValueString()
-        }
 
        apiBody, err := client.ConvertToWebhookAPIFormat(plan.Webhook.Body.ValueString())
        if err != nil {
@@ -210,7 +184,6 @@ func (r *eventsDestinationResource) Create(ctx context.Context, req resource.Cre
                URL:     plan.Webhook.URL.ValueString(),
                Body:    *apiBody,
                Events:  events,
-               Headers: headers,
            },
        })
    }
@@ -284,15 +257,6 @@ func (r *eventsDestinationResource) Read(ctx context.Context, req resource.ReadR
        state.Webhook = nil
    } else if eventDestination.Type == "webhook" {
 
-        headers := make([]webhookHeaderBlock, 0, len(eventDestination.Configuration.Headers))
-        for key, value := range eventDestination.Configuration.Headers {
-            headers = append(headers, webhookHeaderBlock{
-                Key:   types.StringValue(key),
-                Value: types.StringValue(value),
-            })
-        }
-
-
         // Marshal the struct to JSON
         jsonData, err := json.Marshal(eventDestination.Configuration.Body)
         if err != nil {
@@ -306,7 +270,6 @@ func (r *eventsDestinationResource) Read(ctx context.Context, req resource.ReadR
        state.Webhook = &webhookBlock{
            URL:     types.StringValue(eventDestination.Configuration.URL),
            Body:    types.StringValue(body),
-           Headers: headers,
        }
    }
 
@@ -357,10 +320,6 @@ func (r *eventsDestinationResource) Update(ctx context.Context, req resource.Upd
            },
        })
    } else if plan.Webhook != nil {
-       headers := make(map[string]string)
-       for _, header := range plan.Webhook.Headers {
-           headers[header.Key.ValueString()] = header.Value.ValueString()
-       }
        apiBody, err := client.ConvertToWebhookAPIFormat(plan.Webhook.Body.ValueString())
        if err != nil {
            resp.Diagnostics.AddError(
@@ -375,7 +334,6 @@ func (r *eventsDestinationResource) Update(ctx context.Context, req resource.Upd
                URL:     plan.Webhook.URL.ValueString(),
                Body:    *apiBody,
                Events:  events,
-               Headers: headers,
            },
        })
    }

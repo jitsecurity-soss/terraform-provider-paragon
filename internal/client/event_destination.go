@@ -22,7 +22,6 @@ type EventConfiguration struct {
     URL     string            `json:"url,omitempty"`
     Events  []string          `json:"events"`
     Body    WebhookBody        `json:"body,omitempty"`
-    Headers map[string]string   `json:"headers,omitempty"`
 }
 
 type EventDestination struct {
