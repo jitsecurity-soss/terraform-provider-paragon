@@ -166,7 +166,7 @@ EOF
 * `events` (List of String, Required) List of events to subscribe to, Currently only `workflow_failure` is supported.
 * `webhook` (Block, Optional) Webhook destination configuration. Cannot be used with `email`.
   * `url` (String, Required) URL to send webhook notifications to.
-  * `headers` (Map of String, Optional) Headers to include in the webhook request.
+  * `headers` (Map of String, Sensitive, Optional) Headers to include in the webhook request.
   * `body` (String, Required) Body to send with the webhook, Supports variable substitution from the event.
 * `email` (Block, Optional) Email destination configuration. Cannot be used with `webhook`.
   * `address` (String, Required) Email address to send notifications to.
