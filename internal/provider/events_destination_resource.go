@@ -6,8 +6,6 @@ import (
     "context"
     "regexp"
     "strings"
-    "fmt"
-    "encoding/json"
 
     "github.com/hashicorp/terraform-plugin-framework/resource"
     "github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -16,7 +14,6 @@ import (
     "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
     "github.com/hashicorp/terraform-plugin-framework/schema/validator"
     "github.com/hashicorp/terraform-plugin-framework/attr"
-    "github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -51,6 +48,7 @@ type emailBlock struct {
 type webhookBlock struct {
     URL     types.String           `tfsdk:"url"`
     Body    types.String           `tfsdk:"body"`
+    Headers map[string]string      `tfsdk:"headers"`
 }
 
 
@@ -115,6 +113,10 @@ func (r *eventsDestinationResource) Schema(_ context.Context, _ resource.SchemaR
                         Description: "Body to send with the webhook.",
                         Required:    true,
                     },
+                    "headers": schema.MapAttribute{
+                        ElementType: types.StringType,
+                        Optional:    true,
+                    },
                 },
             },
         },
@@ -168,6 +170,15 @@ func (r *eventsDestinationResource) Create(ctx context.Context, req resource.Cre
         })
     } else if plan.Webhook != nil {
 
+        var headers []client.WebhookHeader
+        if len(plan.Webhook.Headers) > 0 {
+            for key, value := range plan.Webhook.Headers {
+                headers = append(headers, client.WebhookHeader{
+                    Key:   key,
+                    Value: value,
+                })
+            }
+        }
        apiBody, err := client.ConvertToWebhookAPIFormat(plan.Webhook.Body.ValueString())
        if err != nil {
            resp.Diagnostics.AddError(
@@ -177,15 +188,20 @@ func (r *eventsDestinationResource) Create(ctx context.Context, req resource.Cre
            return
        }
 
+        eventConfig := client.EventConfiguration{
+            URL:    plan.Webhook.URL.ValueString(),
+            Body:   *apiBody,
+            Events: events,
+        }
 
-       eventDestination, err = r.client.CreateOrUpdateEventDestination(ctx, plan.ProjectID.ValueString(), "", client.CreateEventDestinationRequest{
-           Type: "webhook",
-           Configuration: client.EventConfiguration{
-               URL:     plan.Webhook.URL.ValueString(),
-               Body:    *apiBody,
-               Events:  events,
-           },
-       })
+        if len(headers) > 0 {
+            eventConfig.Headers = headers
+        }
+
+        eventDestination, err = r.client.CreateOrUpdateEventDestination(ctx, plan.ProjectID.ValueString(), "", client.CreateEventDestinationRequest{
+            Type:          "webhook",
+            Configuration: eventConfig,
+        })
    }
 
    if err != nil {
@@ -196,15 +212,9 @@ func (r *eventsDestinationResource) Create(ctx context.Context, req resource.Cre
        return
    }
 
-
-   tflog.Debug(ctx, "Created event destination")
-   tflog.Debug(ctx, fmt.Sprintf("this is the event destination: %s", eventDestination))
-
-
    // Set state to fully populated data
    plan.ID = types.StringValue(eventDestination.ID)
 
-   tflog.Debug(ctx, fmt.Sprintf("this is the plan: %s", plan))
    diags = resp.State.Set(ctx, plan)
    resp.Diagnostics.Append(diags...)
    if resp.Diagnostics.HasError() {
@@ -257,19 +267,19 @@ func (r *eventsDestinationResource) Read(ctx context.Context, req resource.ReadR
        state.Webhook = nil
    } else if eventDestination.Type == "webhook" {
 
-        // Marshal the struct to JSON
-        jsonData, err := json.Marshal(eventDestination.Configuration.Body)
-        if err != nil {
-            fmt.Println("Error marshaling JSON:", err)
-            return
+        headers := make(map[string]string)
+        if eventDestination.Configuration.Headers != nil {
+            for _, header := range eventDestination.Configuration.Headers {
+                headers[header.Key] = header.Value
+            }
         }
-       tflog.Debug(ctx, fmt.Sprintf("this is what we convert: %s", jsonData))
+
        body := client.ConvertPartsToString(eventDestination.Configuration.Body)
-       tflog.Debug(ctx, fmt.Sprintf("this is the body: '%s'", body))
        state.Email = nil
        state.Webhook = &webhookBlock{
            URL:     types.StringValue(eventDestination.Configuration.URL),
            Body:    types.StringValue(body),
+           Headers: headers,
        }
    }
 
@@ -328,14 +338,31 @@ func (r *eventsDestinationResource) Update(ctx context.Context, req resource.Upd
            )
            return
        }
-       eventDestination, err = r.client.CreateOrUpdateEventDestination(ctx, plan.ProjectID.ValueString(), state.ID.ValueString(), client.CreateEventDestinationRequest{
-           Type: "webhook",
-           Configuration: client.EventConfiguration{
-               URL:     plan.Webhook.URL.ValueString(),
-               Body:    *apiBody,
-               Events:  events,
-           },
-       })
+
+        var headers []client.WebhookHeader
+        if len(plan.Webhook.Headers) > 0 {
+            for key, value := range plan.Webhook.Headers {
+                headers = append(headers, client.WebhookHeader{
+                    Key:   key,
+                    Value: value,
+                })
+            }
+        }
+
+        eventConfig := client.EventConfiguration{
+                URL:    plan.Webhook.URL.ValueString(),
+                Body:   *apiBody,
+                Events: events,
+            }
+
+        if len(headers) > 0 {
+            eventConfig.Headers = headers
+        }
+
+        eventDestination, err = r.client.CreateOrUpdateEventDestination(ctx, plan.ProjectID.ValueString(), state.ID.ValueString(), client.CreateEventDestinationRequest{
+            Type:          "webhook",
+            Configuration: eventConfig,
+        })
    }
    if err != nil {
        resp.Diagnostics.AddError(

@@ -8,7 +8,6 @@ import (
     "fmt"
     "io"
     "net/http"
-    "github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 type CreateEventDestinationRequest struct {
@@ -17,11 +16,17 @@ type CreateEventDestinationRequest struct {
     Configuration EventConfiguration     `json:"configuration"`
 }
 
+type WebhookHeader struct {
+    Key   string `json:"key"`
+    Value string `json:"value"`
+}
+
 type EventConfiguration struct {
     EmailTo string            `json:"emailTo,omitempty"`
     URL     string            `json:"url,omitempty"`
     Events  []string          `json:"events"`
-    Body    WebhookBody        `json:"body,omitempty"`
+    Body    WebhookBody       `json:"body,omitempty"`
+    Headers []WebhookHeader   `json:"headers,omitempty"`
 }
 
 type EventDestination struct {
@@ -51,7 +56,6 @@ func (c *Client) CreateOrUpdateEventDestination(ctx context.Context, projectID, 
 
     req.ProjectID = projectID
     jsonBody, err := json.Marshal(req)
-    tflog.Debug(ctx, fmt.Sprintf("before transform : %s", jsonBody))
 
     if err != nil {
         return nil, err
@@ -79,15 +83,11 @@ func (c *Client) CreateOrUpdateEventDestination(ctx context.Context, projectID, 
         return nil, fmt.Errorf("error reading response body: %v", err)
     }
 
-    tflog.Debug(ctx, fmt.Sprintf("body read read read : %s", responseBody))
-
     var eventDestination EventDestination
     err = json.Unmarshal(responseBody, &eventDestination)
     if err != nil {
         return nil, fmt.Errorf("error decoding response body: %v, json: %s", err, string(responseBody))
     }
-
-    tflog.Debug(ctx, "RETURNING")
 
     return &eventDestination, nil
 }
