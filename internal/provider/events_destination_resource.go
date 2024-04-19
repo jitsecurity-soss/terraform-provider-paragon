@@ -116,6 +116,7 @@ func (r *eventsDestinationResource) Schema(_ context.Context, _ resource.SchemaR
                     "headers": schema.MapAttribute{
                         ElementType: types.StringType,
                         Optional:    true,
+                        Sensitive:   true,
                     },
                 },
             },
