@@ -157,5 +157,6 @@ func (p *paragonProvider) Resources(_ context.Context) []func() resource.Resourc
         NewCLIKeyResource,
         NewIntegrationCredentialsResource,
         NewIntegrationStatusResource,
+        NewEventsDestinationResource,
     }
 }
