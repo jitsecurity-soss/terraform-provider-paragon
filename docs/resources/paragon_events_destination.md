@@ -51,7 +51,7 @@ EOF
 ```terraform
 resource "paragon_events_destination" "email_example" {
   project_id = paragon_project.example.id
-  events     = ["workflow_success", "workflow_failure"]
+  events     = ["workflow_failure"]
 
   email {
     address = "notifications@example.com"
