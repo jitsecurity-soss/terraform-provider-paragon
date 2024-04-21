@@ -14,6 +14,7 @@ import (
     "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
     "github.com/hashicorp/terraform-plugin-framework/schema/validator"
     "github.com/hashicorp/terraform-plugin-framework/attr"
+
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -280,7 +281,12 @@ func (r *eventsDestinationResource) Read(ctx context.Context, req resource.ReadR
        state.Webhook = &webhookBlock{
            URL:     types.StringValue(eventDestination.Configuration.URL),
            Body:    types.StringValue(body),
-           Headers: headers,
+       }
+
+       if headers != nil && len(headers) > 0 {
+          state.Webhook.Headers = headers
+       } else {
+          state.Webhook.Headers = nil
        }
    }
 

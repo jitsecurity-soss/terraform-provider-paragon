@@ -9,7 +9,6 @@ import (
     "strings"
     "fmt"
     "net/http"
-    "github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 type CLIKeyResponse struct {
@@ -116,7 +115,6 @@ func (c *Client) GetUserIDFromToken() (string, error) {
 
 func (c *Client) UpdateCLIKey(ctx context.Context, organizationID, keyID, newName string) (*CLIKey, error) {
     url := fmt.Sprintf("%s/organizations/%s/cli-keys/%s", c.baseURL, organizationID, keyID)
-    tflog.Debug(ctx, fmt.Sprintf("url to update: %s", url))
 
     reqBody := map[string]string{
         "name": newName,

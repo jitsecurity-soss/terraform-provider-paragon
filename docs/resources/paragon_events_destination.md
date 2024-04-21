@@ -82,6 +82,8 @@ resource "paragon_events_destination" "webhook_example" {
   }
 ]
 EOF
+  }
+}
 ```
 
 ### New Relic
@@ -111,6 +113,8 @@ resource "paragon_events_destination" "webhook_example" {
   }]
 }]
 EOF
+  }
+}
 ```
 
 ### Sentry
@@ -141,6 +145,8 @@ resource "paragon_events_destination" "webhook_example" {
   }
 }
 EOF
+  }
+}
 ```
 
 
@@ -157,6 +163,8 @@ resource "paragon_events_destination" "webhook_example" {
       "text": "*{{$.event.message}}* (<https://dashboard.useparagon.com/connect/projects/{{$.event.project.id}}/history/workflows/{{$.event.workflow.id}}/executions/{{$.event.data.workflowExecution.id}}|Link to execution>)\n\n```{{$.event.data.error}}```"
 }
 EOF
+  }
+}
 ```
 
 
