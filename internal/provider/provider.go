@@ -145,6 +145,7 @@ func (p *paragonProvider) DataSources(_ context.Context) []func() datasource.Dat
         NewTeamDataSource,
         NewIntegrationsDataSource,
         NewWorkflowDataSource,
+        NewWorkflowsDataSource,
     }
 }
 

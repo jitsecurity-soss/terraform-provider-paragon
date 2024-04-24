@@ -16,8 +16,8 @@ Use `paragon_integrations` data source to find out the relevant `integration_id`
 ```terraform
 # Create credentials for integrating a service
 resource "paragon_integration_status" "example" {
-  integration_id = "your_integration_id"
-  project_id = "your_project_id"
+  integration_id = "f6ab5c54-fc30-4232-973d-73486ca708fc"
+  project_id = "69b05bc7-4996-4b4e-888b-3a67915ee1d8"
   active = true
 }
 ```
@@ -41,8 +41,8 @@ Here's a state sample
 ```json
 {
     "active": true,
-    "id": "integration_id",
-    "integration_id": "integration_id",
-    "project_id": "your_project_id"
+    "id": "f6ab5c54-fc30-4232-973d-73486ca708fc",
+    "integration_id": "f6ab5c54-fc30-4232-973d-73486ca708fc",
+    "project_id": "69b05bc7-4996-4b4e-888b-3a67915ee1d8"
 }
 ```

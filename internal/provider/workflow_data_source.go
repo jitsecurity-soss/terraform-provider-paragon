@@ -24,10 +24,14 @@ type workflowDataSource struct {
 }
 
 type workflowDataSourceModel struct {
-    ID            types.String `tfsdk:"id"`
-    ProjectID     types.String `tfsdk:"project_id"`
-    IntegrationID types.String `tfsdk:"integration_id"`
-    Description   types.String `tfsdk:"description"`
+    ID              types.String   `tfsdk:"id"`
+    ProjectID       types.String   `tfsdk:"project_id"`
+    IntegrationID   types.String   `tfsdk:"integration_id"`
+    Description     types.String   `tfsdk:"description"`
+    DateCreated     types.String   `tfsdk:"date_created"`
+    DateUpdated     types.String   `tfsdk:"date_updated"`
+    Tags            []types.String `tfsdk:"tags"`
+    WorkflowVersion types.Int64    `tfsdk:"workflow_version"`
 }
 
 func (d *workflowDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, _ *datasource.ConfigureResponse) {
@@ -64,6 +68,23 @@ func (d *workflowDataSource) Schema(_ context.Context, _ datasource.SchemaReques
             },
             "id": schema.StringAttribute{
                 Description: "The ID of the workflow.",
+                Computed:    true,
+            },
+            "date_created": schema.StringAttribute{
+                Description: "The creation date of the workflow.",
+                Computed:    true,
+            },
+            "date_updated": schema.StringAttribute{
+                Description: "The last update date of the workflow.",
+                Computed:    true,
+            },
+            "tags": schema.ListAttribute{
+                Description: "The tags associated with the workflow.",
+                Computed:    true,
+                ElementType: types.StringType,
+            },
+            "workflow_version": schema.Int64Attribute{
+                Description: "The version of the workflow.",
                 Computed:    true,
             },
         },
@@ -108,10 +129,14 @@ func (d *workflowDataSource) Read(ctx context.Context, req datasource.ReadReques
     }
 
     state := workflowDataSourceModel{
-        ID:            types.StringValue(foundWorkflow.ID),
-        ProjectID:     types.StringValue(foundWorkflow.ProjectID),
-        IntegrationID: types.StringValue(foundWorkflow.IntegrationID),
-        Description:   types.StringValue(foundWorkflow.Description),
+        ID:              types.StringValue(foundWorkflow.ID),
+        ProjectID:       types.StringValue(foundWorkflow.ProjectID),
+        IntegrationID:   types.StringValue(foundWorkflow.IntegrationID),
+        Description:     types.StringValue(foundWorkflow.Description),
+        DateCreated:     types.StringValue(foundWorkflow.DateCreated),
+        DateUpdated:     types.StringValue(foundWorkflow.DateUpdated),
+        Tags:            client.ConvertStringSliceToTypesStringSlice(foundWorkflow.Tags),
+        WorkflowVersion: types.Int64Value(int64(foundWorkflow.WorkflowVersion)),
     }
 
     resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

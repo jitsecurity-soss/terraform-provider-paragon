@@ -21,7 +21,7 @@ The key that is created should be stored securely.
 ```terraform
 # Create a new CLI key
 resource "paragon_cli_key" "example" {
-  organization_id = "your_organization_id"
+  organization_id = "a820f75f-b288-4a13-9345-1926c30e9d0d"
   name            = "example_cli_key"
 }
 ```
@@ -45,9 +45,9 @@ Here's a state sample, Please make sure you keep the `key' attribute secured
 
 ```json
 {
-  "id": "cli_key_id",
+  "id": "d4c49f69-f72e-44a0-b8ff-6cae11827185",
   "key": "cli_key.XXXXXXXXXXX",
   "name": "key_name",
-  "organization_id": "your_org_id"
+  "organization_id": "a820f75f-b288-4a13-9345-1926c30e9d0d"
 }
 ```

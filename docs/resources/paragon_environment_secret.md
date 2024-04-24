@@ -16,7 +16,7 @@ Manages an [environment secret](https://docs-prod.useparagon.com/workflows/envir
 ```terraform
 # Create a new environment secret
 resource "paragon_environment_secret" "example" {
-  project_id = paragon_project.example.id
+  project_id = "08ae44e3-d506-4c0e-87b0-a6934aa2f3a1"
   key        = "SECRET_KEY"
   value      = "SECRET_VALUE"
 }
@@ -41,21 +41,10 @@ Here's a **full** state sample, Note that the input value is marked as sensitive
 
 ```json
 {
-    "schema_version": 0,
-    "attributes": {
-      "hash": "secret_hash",
-      "id": "secret_id",
-      "key": "secret_name",
-      "project_id": "your_project_id",
-      "value": "secret_value"
-    },
-    "sensitive_attributes": [
-      [
-        {
-          "type": "get_attr",
-          "value": "value"
-        }
-      ]
-    ]
-  }
+    "hash": "secret_hash",
+    "id": "2c24d3db-cc78-48db-b0ec-61c70f25ebc2",
+    "key": "secret_name",
+    "project_id": "08ae44e3-d506-4c0e-87b0-a6934aa2f3a1",
+    "value": "secret_value"
+}
 ```

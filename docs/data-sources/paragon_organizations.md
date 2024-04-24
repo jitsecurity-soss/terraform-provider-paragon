@@ -48,14 +48,14 @@ Here's a state sample:
           "completed_qualification": true,
           "date_created": "2024-03-06T13:18:11.762Z",
           "date_updated": "2024-03-06T13:18:39.943Z",
-          "id": "your_org_id",
-          "name": "your_org_name",
+          "id": "c1dbaa21-bf20-4131-a1b9-5072a4c78f7e",
+          "name": "your org name",
           "purpose": "let our customers use integrations",
           "referral": "email",
           "role": "cto",
           "size": "10-49",
           "type": "BUSINESS",
-          "website": ""
+          "website": "https://example.com"
       }
     ]
 }
