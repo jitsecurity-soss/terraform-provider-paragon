@@ -21,8 +21,8 @@ Oauth integrations usually come with default scopes that if not supplied - might
 It's highly recommended to check them out (via UI -> Settings -> so you can set them as a resource, for example - the basic jira configurations look like this:
 ```terraform
 resource "paragon_integration_credentials" "jira" {
-  integration_id = "your_integration_id"
-  project_id = "your_project_id"
+  integration_id = "d589fe10-b66e-4cb2-885a-0440393886f4"
+  project_id = "6c9880c7-66af-467a-b319-0ce70e886bac"
   oauth = {
     client_id = "client_id"
     client_secret = "secret"
@@ -38,8 +38,8 @@ Use `paragon_integrations` data source to find out the relevant `integration_id`
 ```terraform
 # Create credentials for integrating a service
 resource "paragon_integration_credentials" "example" {
-  integration_id = "your_integration_id"
-  project_id = "your_project_id"
+  integration_id = "d589fe10-b66e-4cb2-885a-0440393886f4"
+  project_id = "6c9880c7-66af-467a-b319-0ce70e886bac"
   oauth = {
     client_id = "client_id"
     client_secret = "secret"
@@ -72,8 +72,9 @@ Here's a state sample, Please make sure you keep the `client_secret' attribute s
 ```json
 {
     "creds_provider": "jira",
-    "id": "credentials_id",
-    "integration_id": "your_integration_id",
+    "id": "b9447451-56e0-4f70-a6df-2be85597e859",
+    "integration_id": "d589fe10-b66e-4cb2-885a-0440393886f4",
+    "project_id": "6c9880c7-66af-467a-b319-0ce70e886bac",
     "oauth": {
       "client_id": "your_client_id",
       "client_secret": "your_client_secret",
@@ -81,8 +82,7 @@ Here's a state sample, Please make sure you keep the `client_secret' attribute s
                 "scope1",
                 "scope2"
               ]
-    },
-    "project_id": "your_project_id",
+    },   
     "scheme": "oauth_app"
 }
 ```

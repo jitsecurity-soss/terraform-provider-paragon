@@ -28,7 +28,7 @@ Manages an [events destination](https://docs.useparagon.com/monitoring/event-des
 
 ```terraform
 resource "paragon_events_destination" "webhook_example" {
-  project_id = paragon_project.example.id
+  project_id = "a7321f97-9c6a-437d-b51e-bd4ce549635f"
   events     = ["workflow_failure"]
 
   webhook {
@@ -50,7 +50,7 @@ EOF
 ### Email Destination
 ```terraform
 resource "paragon_events_destination" "email_example" {
-  project_id = paragon_project.example.id
+  project_id = "a7321f97-9c6a-437d-b51e-bd4ce549635f"
   events     = ["workflow_failure"]
 
   email {
@@ -64,7 +64,7 @@ resource "paragon_events_destination" "email_example" {
 ### Datadog
 ``` terraform
 resource "paragon_events_destination" "webhook_example" {
-  project_id = paragon_project.example.id
+  project_id = "a7321f97-9c6a-437d-b51e-bd4ce549635f"
   events     = ["workflow_failure"]
 
   webhook = {
@@ -89,7 +89,7 @@ EOF
 ### New Relic
 ``` terraform
 resource "paragon_events_destination" "webhook_example" {
-  project_id = paragon_project.example.id
+  project_id = "a7321f97-9c6a-437d-b51e-bd4ce549635f"
   events     = ["workflow_failure"]
 
   webhook = {
@@ -120,7 +120,7 @@ EOF
 ### Sentry
 ``` terraform
 resource "paragon_events_destination" "webhook_example" {
-  project_id = paragon_project.example.id
+  project_id = "a7321f97-9c6a-437d-b51e-bd4ce549635f"
   events     = ["workflow_failure"]
 
   webhook = {
@@ -153,7 +153,7 @@ EOF
 ### Slack
 ``` terraform
 resource "paragon_events_destination" "webhook_example" {
-  project_id = paragon_project.example.id
+  project_id = "a7321f97-9c6a-437d-b51e-bd4ce549635f"
   events     = ["workflow_failure"]
 
   webhook = {
@@ -192,8 +192,8 @@ Here's a state sample
   "events": [
     "workflow_failure"
   ],
-  "id": "<hook_id>",
-  "project_id": "<project_id>",
+  "id": "ab86fd8f-4e52-433c-82bd-1dd968103256",
+  "project_id": "a7321f97-9c6a-437d-b51e-bd4ce549635f",
   "webhook": {
     "body": "[\n  {\n    \"hostname\": \"paragon\",\n    \"service\": \"[Paragon] {{$.event.project.name}}\",\n    \"ddsource\": \"paragon\",\n    \"message\": \"{{$.event}}\",\n    \"some more\": \"{{$.event.timestamp}}\"\n  }\n]\n",
     "headers": {

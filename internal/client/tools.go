@@ -3,6 +3,7 @@ package client
 import (
     "regexp"
     "strings"
+    "github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 type WebhookBody struct {
@@ -81,4 +82,12 @@ func ConvertPartsToString(body WebhookBody) string {
 	}
 
 	return result.String()
+}
+
+func ConvertStringSliceToTypesStringSlice(slice []string) []types.String {
+    result := make([]types.String, len(slice))
+    for i, value := range slice {
+        result[i] = types.StringValue(value)
+    }
+    return result
 }

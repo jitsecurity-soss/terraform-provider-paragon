@@ -62,8 +62,8 @@ Here's a state sample:
 ```json
 {
   "email": "example@example.com",
-  "id": "user_id",
+  "id": "e55e7920-daa6-4a7c-98ae-e1e25f5b96ff",
   "role": "MEMBER",
-  "team_id": "team_id"
+  "team_id": "330ad602-bf0e-4a19-b883-a072001f434f"
 }
 ```

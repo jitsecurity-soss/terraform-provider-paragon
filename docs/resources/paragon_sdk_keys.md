@@ -19,7 +19,7 @@ The private key that is created should be stored securely.
 ```terraform
 # Create an SDK key for the project
 resource "paragon_sdk_keys" "example" {
-  project_id = paragon_project.example.id
+  project_id = "dffc58de-93d4-4a59-b91d-67effc0337ea"
   version    = "1"
 }
 ```
@@ -49,7 +49,7 @@ Here's a state sample:
   "generated_date": "2024-04-07T11:43:23.731Z",
   "id": "7e49dff4-e117-45d8-9a0d-9830fac2bcce",
   "private_key": "-----BEGIN PRIVATE KEY-----......-----END PRIVATE KEY-----",
-  "project_id": "30080bde-b7b3-44a9-9e88-1ad316d2be16",
+  "project_id": "dffc58de-93d4-4a59-b91d-67effc0337ea",
   "revoked": false,
   "version": "1"
 }

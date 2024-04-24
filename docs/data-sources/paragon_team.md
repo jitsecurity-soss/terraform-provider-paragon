@@ -43,9 +43,9 @@ Here's a state sample:
 {
   "date_created": "2024-03-21T17:37:39.902Z",
   "date_updated": "2024-03-21T17:37:39.902Z",
-  "id": "your_team_id",
+  "id": "c8fbefd4-6d54-4c82-9951-78aa1d92bd50",
   "name": "tean_name",
-  "organization_id": "your_org_id",
+  "organization_id": "c1dbaa21-bf20-4131-a1b9-5072a4c78f7e",
   "website": ""
 }
 ```
